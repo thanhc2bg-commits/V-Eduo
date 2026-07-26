@@ -19,15 +19,19 @@
   "license": "ISC",
   "author": "phungdn",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "nodemon --inspect index.js",
+    "watch": "sass --watch src/resources/scss:src/public/css",
+    "start": "nodemon --inspect src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-handlebars": "^9.0.1",
+    "morgan": "^1.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "sass": "^1.101.7"
   }
 }
