@@ -6,6 +6,10 @@ const handlebars = require('express-handlebars');
 const port = 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// bootstrap 5
+app.use('/bootstrap', express.static(path.join(__dirname, '..', 'node_modules', 'bootstrap', 'dist')));
+
 // HTTP logger
 app.use(morgan('combined'))
 
