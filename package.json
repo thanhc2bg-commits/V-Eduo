@@ -28,10 +28,10 @@
   "dependencies": {
     "bootstrap": "^5.3.8",
     "express": "^5.2.1",
-    "express-handlebars": "^9.0.1",
-    "morgan": "^1.11.0"
+    "express-handlebars": "^9.0.1"
   },
   "devDependencies": {
+    "morgan": "^1.11.0",
     "nodemon": "^3.1.14",
     "sass": "^1.101.7"
   }
