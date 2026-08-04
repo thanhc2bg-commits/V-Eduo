@@ -1,0 +1,2 @@
+# Giữ nguyên LF cho tất cả file trong thư mục .husky
+.husky/* text eol=lf
