@@ -1,5 +1,5 @@
 function slugify(str) {
-    return (str || '')
+    const base = (str || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
@@ -9,6 +9,7 @@ function slugify(str) {
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-');
+    return base || `course-${Date.now()}`;
 }
 
 async function generateUniqueSlug(Model, name, excludeId = null) {
