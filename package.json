@@ -33,7 +33,10 @@
   "dependencies": {
     "bootstrap": "^5.3.8",
     "express": "^5.2.1",
-    "express-handlebars": "^9.0.1"
+    "express-handlebars": "^9.0.1",
+    "method-override": "^3.0.0",
+    "mongoose": "^9.9.1",
+    "mongoose-slug-generator": "^1.0.4"
   },
   "devDependencies": {
     "husky": "^9.1.7",
