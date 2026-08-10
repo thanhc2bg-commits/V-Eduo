@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 
 const Course = new Schema(
     {
-        name: { type: String, maxLength: 255 },
+        name: { type: String, maxLength: 255, required: true, trim: true },
         description: { type: String },
         image: { type: String },
         videoid: { type: String, required: true },
@@ -30,6 +30,23 @@ Course.pre('save', async function () {
 
 // Tự sinh slug unique trước khi cập nhật (this là Query object)
 Course.pre('findOneAndUpdate', async function () {
+    const query = this.getQuery();
+    const update = this.getUpdate();
+    const newName = update.name || (update.$set && update.$set.name);
+
+    if (newName) {
+        const docId = query._id;
+        const slug = await generateUniqueSlug(this.model, newName, docId);
+        if (update.$set) {
+            update.$set.slug = slug;
+        } else {
+            update.slug = slug;
+        }
+    }
+});
+
+// Tự sinh slug unique trước khi cập nhật bằng updateOne
+Course.pre('updateOne', async function () {
     const query = this.getQuery();
     const update = this.getUpdate();
     const newName = update.name || (update.$set && update.$set.name);
