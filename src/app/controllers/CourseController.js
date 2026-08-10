@@ -27,8 +27,14 @@ class CourseController {
         course
             .save()
             .then(() => res.redirect('/courses/create'))
-            .catch(next);
-        res.send('Course saved successfully');
+            .catch((err) => {
+                if (err.code === 11000) {
+                    return res
+                        .status(409)
+                        .send('Trùng dữ liệu, vui lòng thử lại');
+                }
+                next(err);
+            });
     }
 
     //[GET] /courses/:id/edit
@@ -49,13 +55,20 @@ class CourseController {
 
         Course.updateOne({ _id: req.params.id }, formData)
             .then(() => res.redirect('/me/courses/stored'))
-            .catch(next);
+            .catch((err) => {
+                if (err.code === 11000) {
+                    return res
+                        .status(409)
+                        .send('Trùng dữ liệu, vui lòng thử lại');
+                }
+                next(err);
+            });
     }
 
     //[DELETE] /courses/:id
     destroy(req, res, next) {
         Course.deleteOne({ _id: req.params.id })
-            .then(() => res.redirect('back'))
+            .then(() => res.redirect('/me/courses/stored'))
             .catch(next);
     }
 }
