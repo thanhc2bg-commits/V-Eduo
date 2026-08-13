@@ -50,6 +50,23 @@ app.set('views', path.join(__dirname, 'resources', 'views'));
 //routes init
 route(app);
 
+// Error handler tập trung: lỗi ValidationError của Mongoose -> 400 thay vì 500 thô
+app.use((err, req, res, next) => {
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        const messages = Object.values(err.errors || {}).map((e) => e.message);
+        return res
+            .status(400)
+            .json({ error: 'Dữ liệu không hợp lệ', details: messages });
+    }
+    if (err.code === 11000) {
+        return res
+            .status(409)
+            .json({ error: 'Trùng dữ liệu, vui lòng thử lại' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+});
+
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
 });

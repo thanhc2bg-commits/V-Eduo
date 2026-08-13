@@ -53,7 +53,9 @@ class CourseController {
         const formData = req.body;
         formData.image = `https://img.youtube.com/vi/${formData.videoid}/sddefault.jpg`;
 
-        Course.updateOne({ _id: req.params.id }, formData)
+        Course.updateOne({ _id: req.params.id }, formData, {
+            runValidators: true,
+        })
             .then(() => res.redirect('/me/courses/stored'))
             .catch((err) => {
                 if (err.code === 11000) {
@@ -67,8 +69,22 @@ class CourseController {
 
     //[DELETE] /courses/:id
     destroy(req, res, next) {
-        Course.deleteOne({ _id: req.params.id })
+        Course.delete({ _id: req.params.id })
             .then(() => res.redirect('/me/courses/stored'))
+            .catch(next);
+    }
+
+    //[PATCH] /courses/:id/restore
+    restore(req, res, next) {
+        Course.restore({ _id: req.params.id })
+            .then(() => res.redirect('/me/courses/trash'))
+            .catch(next);
+    }
+
+    //[DELETE] /courses/:id/force
+    forceDestroy(req, res, next) {
+        Course.deleteOne({ _id: req.params.id })
+            .then(() => res.redirect('/me/courses/trash'))
             .catch(next);
     }
 }
