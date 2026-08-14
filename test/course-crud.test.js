@@ -681,24 +681,31 @@ async function main() {
     }
 
     // ===== C5. CORS WHITELIST =====
+    // Quy tắc: same-origin LUÔN cho phép; origin khác host chỉ cho phép nếu
+    // nằm trong CORS_ORIGINS. Nếu CORS_ORIGINS trống hoặc '*' (dev) → cho phép mọi origin.
+    const APP_ORIGINS = (process.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    const corsAllowsAll = !APP_ORIGINS.length || APP_ORIGINS.includes('*');
 
-    // Case 16: origin được phép (http://localhost:3000) -> 200
+    // Case 16: same-origin (http://localhost:3000) -> luôn 200
     {
         const res = await fetchWithOrigin('http://localhost:3000');
         report(
-            'Case 16: origin được phép -> 200',
+            'Case 16: same-origin -> 200',
             res.status === 200,
             `HTTP=${res.status} (kỳ vọng 200)`,
         );
     }
 
-    // Case 17: origin không được phép (http://evil.com) -> 403
+    // Case 17: origin lạ (http://evil.com) -> 200 nếu cho phép tất cả, 403 nếu có whitelist
     {
         const res = await fetchWithOrigin('http://evil.com');
         report(
-            'Case 17: origin không được phép -> 403',
-            res.status === 403,
-            `HTTP=${res.status} (kỳ vọng 403)`,
+            `Case 17: origin lạ -> ${corsAllowsAll ? '200 (allow all)' : '403 (whitelist)'}`,
+            corsAllowsAll ? res.status === 200 : res.status === 403,
+            `HTTP=${res.status}, CORS_ORIGINS=[${APP_ORIGINS.join(',')}] (kỳ vọng ${corsAllowsAll ? '200' : '403'})`,
         );
     }
 

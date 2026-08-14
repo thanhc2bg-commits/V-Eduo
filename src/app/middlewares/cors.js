@@ -7,29 +7,58 @@ const origins = (process.env.CORS_ORIGINS || '')
     .map((s) => s.trim())
     .filter(Boolean);
 
-const corsOptions = {
-    origin(origin, callback) {
-        // Không có origin (curl, same-origin, server-to-server) → cho phép
-        if (!origin) {
-            return callback(null, true);
-        }
-        // Whitelist rỗng hoặc '*' → cho phép tất cả
-        if (!origins.length || origins.includes('*')) {
-            return callback(null, true);
-        }
-        if (origins.includes(origin)) {
-            return callback(null, true);
-        }
-        return callback(new Error('Origin không được phép (CORS)'));
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    maxAge: 86400, // 24h cache preflight
+// Dùng dạng function-options để có req — cho phép same-origin LUÔN LUÔN
+// (dự án server-rendered, form submit / fetch đều same-origin),
+// chỉ kiểm tra whitelist khi origin là cross-origin khác host.
+const corsOptionsFunction = (req, callback) => {
+    // An toàn: luôn có req.headers
+    const origin = req && req.headers ? req.headers.origin : null;
+
+    // Không có origin (curl, server-to-server) → cho phép, không set CORS headers
+    if (!origin) {
+        return callback(null, { origin: false });
+    }
+
+    // Same-origin (origin.host === host server) → luôn cho phép
+    let originHost = null;
+    try {
+        originHost = new URL(origin).host;
+    } catch (e) {
+        originHost = null;
+    }
+    if (originHost && req.headers.host && originHost === req.headers.host) {
+        return callback(null, {
+            origin: true,
+            credentials: true,
+            maxAge: 86400,
+        });
+    }
+
+    // Whitelist rỗng hoặc '*' → cho phép tất cả (chỉ dùng khi dev/local)
+    if (!origins.length || origins.includes('*')) {
+        return callback(null, {
+            origin: true,
+            credentials: true,
+            maxAge: 86400,
+        });
+    }
+
+    // Origin khác host — chỉ cho phép nếu nằm trong whitelist
+    if (origins.includes(origin)) {
+        return callback(null, {
+            origin: true,
+            credentials: true,
+            maxAge: 86400,
+        });
+    }
+
+    return callback(new Error('Origin không được phép (CORS)'));
 };
 
-const corsMiddleware = cors(corsOptions);
+// cors() nhận function làm options → gọi với (req, callback)
+const corsMiddleware = cors(corsOptionsFunction);
 
-// Nếu origin không được phép, cors() gọi callback(err) — bắt và trả 403
+// Nếu origin không được phép, cors() gọi next(err) — bắt và trả 403
 // thay vì để error handler tập trung trả 500.
 function corsWithErrorHandling(req, res, next) {
     corsMiddleware(req, res, (err) => {
