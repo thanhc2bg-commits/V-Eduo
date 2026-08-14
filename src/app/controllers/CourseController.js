@@ -5,6 +5,10 @@ const {
     fetchPlaylistVideos,
     MAX_VIDEOS_PER_BATCH,
 } = require('../../utils/youtube');
+const {
+    validateCourse,
+    validatePlaylistFetch,
+} = require('../../utils/validators');
 
 class CourseController {
     //[GET] /courses/:slug
@@ -25,6 +29,11 @@ class CourseController {
 
     //[POST] /courses/store
     store(req, res, next) {
+        const { ok, error } = validateCourse(req.body);
+        if (!ok) {
+            return res.status(400).send(error);
+        }
+
         const formData = req.body;
         formData.image = `https://img.youtube.com/vi/${formData.videoid}/sddefault.jpg`;
         const course = new Course(formData);
@@ -55,6 +64,11 @@ class CourseController {
 
     //[PUT] /courses/:id
     update(req, res, next) {
+        const { ok, error } = validateCourse(req.body, true);
+        if (!ok) {
+            return res.status(400).send(error);
+        }
+
         const formData = req.body;
         formData.image = `https://img.youtube.com/vi/${formData.videoid}/sddefault.jpg`;
 
@@ -97,6 +111,11 @@ class CourseController {
     // Lấy danh sách video từ playlist YouTube (gọi Data API v3)
     async fetchPlaylist(req, res, next) {
         try {
+            const { ok, error } = validatePlaylistFetch(req.body);
+            if (!ok) {
+                return res.status(400).json({ error });
+            }
+
             const playlistId = extractPlaylistId(req.body.playlist);
             if (!playlistId) {
                 return res
@@ -126,11 +145,9 @@ class CourseController {
                 .json({ error: 'Không có video nào được chọn' });
         }
         if (items.length > MAX_VIDEOS_PER_BATCH) {
-            return res
-                .status(400)
-                .json({
-                    error: `Tối đa ${MAX_VIDEOS_PER_BATCH} video mỗi lần thêm`,
-                });
+            return res.status(400).json({
+                error: `Tối đa ${MAX_VIDEOS_PER_BATCH} video mỗi lần thêm`,
+            });
         }
 
         // Validate định dạng videoid (YouTube video ID luôn 11 ký tự)

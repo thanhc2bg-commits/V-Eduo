@@ -12,6 +12,7 @@ const route = require('./routes');
 const db = require('./config/db');
 const { attachUser } = require('./app/middlewares/auth');
 const { csrfToken, csrfProtection } = require('./app/middlewares/csrf');
+const corsMiddleware = require('./app/middlewares/cors');
 //connect to db
 db.connect();
 
@@ -32,6 +33,9 @@ app.use(
         },
     }),
 );
+
+// CORS whitelist (từ CORS_ORIGINS env)
+app.use(corsMiddleware);
 
 // app.get('/', (req, res) => {
 //     res.render('home');

@@ -95,6 +95,14 @@ async function httpDelete(path) {
     });
 }
 
+async function fetchWithOrigin(origin) {
+    return fetch(BASE_URL + '/', {
+        method: 'GET',
+        headers: origin ? { Origin: origin } : {},
+        redirect: 'manual',
+    });
+}
+
 // ---------- Bộ đếm kết quả ----------
 let passed = 0;
 let failed = 0;
@@ -112,6 +120,11 @@ function report(name, pass, detail) {
 
 function isControlled(status) {
     return allowedStatuses.has(status);
+}
+
+// Tạo YouTube video ID hợp lệ (đúng 11 ký tự: 'v' + 10 chữ số) cho test
+function vid(n) {
+    return 'v' + String(n).padStart(10, '0');
 }
 
 // ---------- Login admin qua HTTP thật (lấy 2 cookie: accessToken + refreshToken) ----------
@@ -192,7 +205,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm tra CRUD',
-            videoid: 'vid-case1',
+            videoid: vid(1),
         });
         const doc = await Course.findOne({ name: 'Kiểm tra CRUD' }).lean();
         report(
@@ -206,7 +219,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm tra CRUD',
-            videoid: 'vid-case2',
+            videoid: vid(2),
         });
         const docs = await Course.find({ name: 'Kiểm tra CRUD' })
             .sort({ createdAt: 1 })
@@ -225,7 +238,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm Tra CRUD!!!',
-            videoid: 'vid-case3',
+            videoid: vid(3),
         });
         const doc = await Course.findOne({ name: 'Kiểm Tra CRUD!!!' }).lean();
         report(
@@ -239,7 +252,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: '   ',
-            videoid: 'vid-case4',
+            videoid: vid(4),
         });
         const count = await Course.countDocuments({ name: { $regex: /^\s*$/ } });
         report(
@@ -253,7 +266,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: '!!!@@@###',
-            videoid: 'vid-case5',
+            videoid: vid(5),
         });
         const doc = await Course.findOne({ name: '!!!@@@###' }).lean();
         report(
@@ -266,8 +279,8 @@ async function main() {
     // Case 6: 2 request cùng tên gần như đồng thời (race condition)
     {
         const [r1, r2] = await Promise.all([
-            httpPost('/courses/store', { name: 'Race Test', videoid: 'vid-race1' }),
-            httpPost('/courses/store', { name: 'Race Test', videoid: 'vid-race2' }),
+            httpPost('/courses/store', { name: 'Race Test', videoid: vid(61) }),
+            httpPost('/courses/store', { name: 'Race Test', videoid: vid(62) }),
         ]);
         const statuses = [r1.status, r2.status].sort();
         const docs = await Course.find({ name: 'Race Test' }).lean();
@@ -292,7 +305,7 @@ async function main() {
         const res = await httpPut(`/courses/${created._id}`, {
             name: 'Update Slug Test Mới',
             description: 'đổi tên',
-            videoid: 'vid-case7',
+            videoid: vid(7),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -312,7 +325,7 @@ async function main() {
         });
         const res = await httpPut(`/courses/${created._id}`, {
             description: 'chỉ đổi mô tả, không gửi name',
-            videoid: 'vid-case8a',
+            videoid: vid(81),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -331,7 +344,7 @@ async function main() {
         const res = await httpPut(`/courses/${created._id}`, {
             name: 'Same Name Test',
             description: 'chỉ đổi mô tả',
-            videoid: 'vid-case8b',
+            videoid: vid(82),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -349,7 +362,7 @@ async function main() {
         // 9.1: A đổi tên thành "Course Beta" -> A phải thành course-beta-1
         await httpPut(`/courses/${a._id}`, {
             name: 'Course Beta',
-            videoid: 'vid-case9a',
+            videoid: vid(91),
         });
         const aAfterFirst = await Course.findById(a._id).lean();
         const firstOk = aAfterFirst.slug === 'course-beta-1';
@@ -358,7 +371,7 @@ async function main() {
         //        -> slug phải GIỮ NGUYÊN course-beta-1, không thành -2
         await httpPut(`/courses/${a._id}`, {
             name: 'Course Beta',
-            videoid: 'vid-case9a',
+            videoid: vid(91),
         });
         const aAfterSecond = await Course.findById(a._id).lean();
         const secondOk = aAfterSecond.slug === 'course-beta-1';
@@ -404,7 +417,7 @@ async function main() {
 
         const resCreate = await httpPost('/courses/store', {
             name: 'Reuse Slug Test',
-            videoid: 'vid-case11-new',
+            videoid: vid(112),
         });
         const recreated = await Course.findOne({ name: 'Reuse Slug Test' }).lean();
 
@@ -437,7 +450,7 @@ async function main() {
             },
             body: new URLSearchParams({
                 name: 'Refresh Test',
-                videoid: 'vid-refresh',
+                videoid: vid(113),
             }).toString(),
             redirect: 'manual',
         });
@@ -468,7 +481,7 @@ async function main() {
             },
             body: new URLSearchParams({
                 name: 'Refresh Token Change Test',
-                videoid: 'vid-refresh-change',
+                videoid: vid(114),
             }).toString(),
             redirect: 'manual',
         });
@@ -632,6 +645,62 @@ async function main() {
     await mongoose.connection.db.collection('sessions').deleteMany({
         userId: normalUser._id,
     });
+
+    // ===== C4. VALIDATE INPUT =====
+
+    // Case 14: POST /courses/store với videoid sai định dạng (không đủ 11 ký tự) -> 400
+    {
+        const res = await httpPost('/courses/store', {
+            name: 'Invalid Video ID',
+            videoid: 'short',
+        });
+        const count = await Course.countDocuments({ name: 'Invalid Video ID' });
+        report(
+            'Case 14: videoid sai định dạng -> 400, không tạo bản ghi',
+            res.status === 400 && count === 0,
+            `HTTP=${res.status}, số bản ghi=${count} (kỳ vọng 400, 0 bản ghi)`,
+        );
+    }
+
+    // Case 15: PUT /courses/:id với videoid sai định dạng -> 400
+    {
+        const created = await Course.create({
+            name: 'Update Invalid Video',
+            videoid: vid(15),
+        });
+        const res = await httpPut(`/courses/${created._id}`, {
+            name: 'Update Invalid Video',
+            videoid: 'bad',
+        });
+        const doc = await Course.findById(created._id).lean();
+        report(
+            'Case 15: update videoid sai định dạng -> 400, không đổi videoid',
+            res.status === 400 && doc && doc.videoid === vid(15),
+            `HTTP=${res.status}, videoid="${doc && doc.videoid}" (kỳ vọng 400, giữ "${vid(15)}")`,
+        );
+    }
+
+    // ===== C5. CORS WHITELIST =====
+
+    // Case 16: origin được phép (http://localhost:3000) -> 200
+    {
+        const res = await fetchWithOrigin('http://localhost:3000');
+        report(
+            'Case 16: origin được phép -> 200',
+            res.status === 200,
+            `HTTP=${res.status} (kỳ vọng 200)`,
+        );
+    }
+
+    // Case 17: origin không được phép (http://evil.com) -> 403
+    {
+        const res = await fetchWithOrigin('http://evil.com');
+        report(
+            'Case 17: origin không được phép -> 403',
+            res.status === 403,
+            `HTTP=${res.status} (kỳ vọng 403)`,
+        );
+    }
 
     // ===== D. KIỂM TRA CHUNG =====
 

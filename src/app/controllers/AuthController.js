@@ -4,6 +4,7 @@ const {
     createSessionAndSetCookies,
     refreshAccessTokenFromCookie,
 } = require('../../utils/token');
+const { validateRegister, validateLogin } = require('../../utils/validators');
 
 class AuthController {
     // [GET] /auth/register
@@ -16,23 +17,10 @@ class AuthController {
         const { name, username, email, password } = req.body;
 
         // Validate cơ bản
-        if (!name || !username || !email || !password) {
+        const { ok, error } = validateRegister(req.body);
+        if (!ok) {
             return res.render('auth/register', {
-                error: 'Vui lòng điền đầy đủ thông tin',
-            });
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.render('auth/register', {
-                error: 'Email không đúng định dạng',
-                name,
-                username,
-                email,
-            });
-        }
-        if (password.length < 8) {
-            return res.render('auth/register', {
-                error: 'Mật khẩu phải có ít nhất 8 ký tự',
+                error,
                 name,
                 username,
                 email,
@@ -91,9 +79,10 @@ class AuthController {
     login(req, res, next) {
         const { identifier, password } = req.body;
 
-        if (!identifier || !password) {
+        const { ok, error } = validateLogin(req.body);
+        if (!ok) {
             return res.render('auth/login', {
-                error: 'Vui lòng điền tên đăng nhập và mật khẩu',
+                error,
             });
         }
 
