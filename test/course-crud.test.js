@@ -103,6 +103,21 @@ async function fetchWithOrigin(origin) {
     });
 }
 
+// Mô phỏng CHÍNH XÁC form HTML submit: token _csrf nằm trong BODY,
+// KHÔNG gửi header x-csrf-token (thư viện csrf-csrf mặc định chỉ đọc header
+// → case này sẽ FAIL nếu getCsrfTokenFromRequest không đọc req.body._csrf).
+async function httpPostFormBodyOnly(path, data) {
+    return fetch(BASE_URL + path, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Cookie: adminCookie, // bao gồm cookie _csrf
+        },
+        body: new URLSearchParams({ ...data, _csrf: csrfToken }).toString(),
+        redirect: 'manual',
+    });
+}
+
 // ---------- Bộ đếm kết quả ----------
 let passed = 0;
 let failed = 0;
@@ -775,6 +790,25 @@ async function main() {
         process.env.CORS_ORIGINS = oldCorsOrigins;
         delete require.cache[require.resolve('../src/app/middlewares/cors')];
         require('../src/app/middlewares/cors');
+    }
+
+    // ===== C5.6. CSRF FORM-BODY (mô phỏng form HTML thật) =====
+
+    // Case 19: POST /courses/store CHỈ gửi _csrf trong body (không header)
+    // → phải PASS. Trước khi thêm getCsrfTokenFromRequest, thư viện csrf-csrf
+    // mặc định chỉ đọc header x-csrf-token → case này FAIL "Token CSRF không hợp lệ"
+    // dù token form khớp cookie (đúng lỗi người dùng gặp khi đăng ký).
+    {
+        const res = await httpPostFormBodyOnly('/courses/store', {
+            name: 'CSRF Body Form Test',
+            videoid: vid(19),
+        });
+        const doc = await Course.findOne({ name: 'CSRF Body Form Test' }).lean();
+        report(
+            'Case 19: CSRF token trong BODY (form HTML, không header) -> 302, tạo được',
+            res.status === 302 && doc && doc.slug === 'csrf-body-form-test',
+            `HTTP=${res.status}, slug="${doc && doc.slug}" (kỳ vọng 302 + tạo thành công)`,
+        );
     }
 
     // ===== D. KIỂM TRA CHUNG =====

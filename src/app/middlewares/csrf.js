@@ -10,12 +10,18 @@ if (!CSRF_SECRET) {
 // - Cookie `_csrf` lưu secret (httpOnly, sameSite lax) — không đọc được từ JS.
 // - Token được sinh mỗi request, đưa vào res.locals.csrfToken để view render
 //   vào form (input hidden) hoặc fetch (header x-csrf-token).
+// Quan trọng: thư viện csrf-csrf mặc định CHỈ đọc token từ header
+// `x-csrf-token` (xem src của dist/index.cjs dòng getCsrfTokenFromRequest).
+// Với form HTML submit token nằm trong BODY (field _csrf) → phải chỉ định
+// đọc cả body nếu không form luôn bị 403 dù token khớp cookie.
 const { invalidCsrfTokenError, generateCsrfToken, doubleCsrfProtection } =
     doubleCsrf({
         getSecret: () => CSRF_SECRET,
         // Dự án dùng cookie-based (không express-session) — secret nằm trong
         // cookie httpOnly `_csrf`, nên identifier cố định là đủ an toàn.
         getSessionIdentifier: () => 'v-connect-session',
+        getCsrfTokenFromRequest: (req) =>
+            (req.body && req.body._csrf) || req.headers['x-csrf-token'],
         cookieName: '_csrf',
         cookieOptions: {
             httpOnly: true,
