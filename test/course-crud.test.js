@@ -709,6 +709,74 @@ async function main() {
         );
     }
 
+    // ===== C5.5. CORS WHITELIST MODE (giả lập production) =====
+
+    // Case 18: set CORS_ORIGINS cụ thể (như production) → origin lạ bị chặn 403.
+    // Test trực tiếp middleware (không qua server) vì cors.js đọc env lúc load.
+    {
+        const oldCorsOrigins = process.env.CORS_ORIGINS;
+        process.env.CORS_ORIGINS = 'https://prod.example.com';
+
+        // Xóa cache rồi require lại để cors.js đọc env mới
+        delete require.cache[require.resolve('../src/app/middlewares/cors')];
+        const corsMw = require('../src/app/middlewares/cors');
+
+        function createMockRes() {
+            return {
+                headers: {},
+                getHeader(name) {
+                    return this.headers[name.toLowerCase()];
+                },
+                setHeader(name, value) {
+                    this.headers[name.toLowerCase()] = value;
+                },
+                removeHeader(name) {
+                    delete this.headers[name.toLowerCase()];
+                },
+                status(code) {
+                    this.statusCode = code;
+                    return this;
+                },
+                json(body) {
+                    this.jsonBody = body;
+                    return this;
+                },
+            };
+        }
+
+        // 1. Origin được phép (https://prod.example.com) → next(), KHÔNG trả 403
+        let nextOk = 0;
+        const resOk = createMockRes();
+        const reqOk = {
+            headers: { host: 'localhost:3000', origin: 'https://prod.example.com' },
+        };
+        corsMw(reqOk, resOk, () => nextOk++);
+
+        // 2. Origin lạ (https://evil.com) → 403 JSON
+        let nextBad = 0;
+        const resBad = createMockRes();
+        const reqBad = {
+            headers: { host: 'localhost:3000', origin: 'https://evil.com' },
+        };
+        corsMw(reqBad, resBad, () => nextBad++);
+
+        report(
+            'Case 18: production CORS_ORIGINS cụ thể — origin được phép → next(), origin lạ → 403',
+            nextOk === 1 &&
+                resOk.statusCode !== 403 &&
+                nextBad === 0 &&
+                resBad.statusCode === 403 &&
+                resBad.jsonBody &&
+                resBad.jsonBody.error === 'Origin không được phép (CORS)',
+            `ok: next=${nextOk}, status=${resOk.statusCode}; bad: next=${nextBad}, status=${resBad.statusCode}, json=${JSON.stringify(resBad.jsonBody)}`,
+        );
+
+        // Phục hồi env + cache
+        process.env.CORS_ORIGINS = oldCorsOrigins;
+        delete require.cache[require.resolve('../src/app/middlewares/cors')];
+        require('../src/app/middlewares/cors');
+    }
+
     // ===== D. KIỂM TRA CHUNG =====
 
     // Case 12: toàn bộ collection không trùng slug
