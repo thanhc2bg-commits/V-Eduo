@@ -1,6 +1,7 @@
 <div class="mt-4">
     <h3>Chỉnh sửa khóa học</h3>
     <form action="/courses/{{course._id}}?_method=PUT" method="POST">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <div class="form-group">
             <label for="name">Tên khóa học</label>
             <input type="text" class="form-control" id="name" name="name" value="{{course.name}}">

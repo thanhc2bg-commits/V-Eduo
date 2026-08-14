@@ -11,6 +11,15 @@ $(document).ready(function () {
     var $progress = $('#playlist-progress');
     var $summary = $('#playlist-summary');
 
+    // CSRF token từ meta tag (được render bởi server)
+    var csrfToken = $('meta[name="csrf-token"]').attr('content') || '';
+    function csrfHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+        };
+    }
+
     var MAX_VIDEOS = 200; // khớp với MAX_VIDEOS_PER_BATCH server
     var CONCURRENCY = 5; // khớp với concurrency server (client chia chunk để cập nhật tiến độ)
     var videos = []; // danh sách video hiện tại từ playlist
@@ -146,7 +155,7 @@ $(document).ready(function () {
             try {
                 var res = await fetch('/courses/playlist/store', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: csrfHeaders(),
                     body: JSON.stringify({ items: chunk }),
                 });
                 var data = await res.json();
@@ -218,7 +227,7 @@ $(document).ready(function () {
         try {
             var res = await fetch('/courses/playlist/items', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders(),
                 body: JSON.stringify({ playlist: playlist }),
             });
             var data = await res.json();

@@ -8,6 +8,7 @@
             {{/if}}
 
             <form method="POST" action="/auth/register">
+                <input type="hidden" name="_csrf" value="{{csrfToken}}">
                 <div class="mb-3">
                     <label for="name" class="form-label">Họ tên</label>
                     <input type="text" id="name" name="name" class="form-control"

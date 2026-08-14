@@ -6,12 +6,32 @@ const morgan = require('morgan');
 const methodOverride = require('method-override');
 const cookieParser = require('cookie-parser');
 const handlebars = require('express-handlebars');
+const helmet = require('helmet');
 const port = process.env.PORT || 3000;
 const route = require('./routes');
 const db = require('./config/db');
 const { attachUser } = require('./app/middlewares/auth');
+const { csrfToken, csrfProtection } = require('./app/middlewares/csrf');
 //connect to db
 db.connect();
+
+// Bảo mật HTTP headers (CSP cấu hình cho phép oEmbed YouTube + thumbnail)
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:', 'https://img.youtube.com'],
+                connectSrc: ["'self'", 'https://www.youtube.com'],
+                fontSrc: ["'self'", 'data:'],
+                objectSrc: ["'none'"],
+                frameAncestors: ["'self'"],
+            },
+        },
+    }),
+);
 
 // app.get('/', (req, res) => {
 //     res.render('home');
@@ -27,6 +47,12 @@ app.use(
 app.use(express.json());
 app.use(methodOverride('_method'));
 app.use(cookieParser());
+
+// CSRF: gắn token vào res.locals cho mọi request (GET render form dùng được)
+app.use(csrfToken);
+
+// CSRF protection — chặn mọi request thay đổi (POST/PUT/PATCH/DELETE) thiếu token
+app.use(csrfProtection);
 
 // Gắn req.user + res.locals.user từ cookie token (chạy trước routes)
 app.use(attachUser);

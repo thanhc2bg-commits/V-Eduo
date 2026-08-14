@@ -8,6 +8,7 @@
             {{/if}}
 
             <form method="POST" action="/auth/login">
+                <input type="hidden" name="_csrf" value="{{csrfToken}}">
                 <div class="mb-3">
                     <label for="identifier" class="form-label">Tên đăng nhập hoặc Email</label>
                     <input type="text" id="identifier" name="identifier" class="form-control" required autofocus>

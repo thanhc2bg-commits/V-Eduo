@@ -1,6 +1,9 @@
+<meta name="csrf-token" content="{{csrfToken}}">
+
 <div class="mt-4">
     <h3>Đăng khóa học</h3>
     <form action="/courses/store" method="POST">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <div class="form-group">
             <label for="name">Tên khóa học</label>
             <input type="text" class="form-control" id="name" name="name" placeholder="Tên khóa học (có thể tự điền từ video)">

@@ -98,7 +98,9 @@
 </div>
 
 <!-- Hidden form để submit DELETE -->
-<form id="delete-course-form" method="POST"></form>
+<form id="delete-course-form" method="POST">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+</form>
 
 <script>
     $(document).ready(function() {

@@ -37,6 +37,28 @@ if (!/test|dev/i.test(MONGODB_URI)) {
 let adminCookie = '';
 let adminId = null;
 let adminRefreshToken = '';
+let csrfCookie = '';
+let csrfToken = '';
+
+// Lấy CSRF token + cookie _csrf từ trang login (server render token vào form).
+// Cookie _csrf là session cookie không gắn user — dùng chung cho mọi request.
+async function fetchCsrf() {
+    const res = await fetch(BASE_URL + '/auth/login', { redirect: 'manual' });
+    const body = await res.text();
+    const m = body.match(/name="_csrf" value="([^"]+)"/);
+    let setCookie = '';
+    if (typeof res.headers.getSetCookie === 'function') {
+        setCookie = res.headers.getSetCookie().join('; ');
+    } else {
+        setCookie = res.headers.get('set-cookie') || '';
+    }
+    const mCsrf = setCookie.match(/_csrf=([^;]+)/);
+    if (!m || !mCsrf) {
+        throw new Error('Không lấy được CSRF token/cookie');
+    }
+    csrfToken = m[1];
+    csrfCookie = `_csrf=${mCsrf[1]}`;
+}
 
 // ---------- Helpers HTTP (không follow redirect để thấy status 302) ----------
 async function httpPost(path, data) {
@@ -45,6 +67,7 @@ async function httpPost(path, data) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Cookie: adminCookie,
+            'x-csrf-token': csrfToken,
         },
         body: new URLSearchParams(data).toString(),
         redirect: 'manual',
@@ -57,6 +80,7 @@ async function httpPut(path, data) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Cookie: adminCookie,
+            'x-csrf-token': csrfToken,
         },
         body: new URLSearchParams(data).toString(),
         redirect: 'manual',
@@ -66,7 +90,7 @@ async function httpPut(path, data) {
 async function httpDelete(path) {
     return fetch(BASE_URL + path, {
         method: 'DELETE',
-        headers: { Cookie: adminCookie },
+        headers: { Cookie: adminCookie, 'x-csrf-token': csrfToken },
         redirect: 'manual',
     });
 }
@@ -94,7 +118,11 @@ function isControlled(status) {
 async function loginAdminAndGetCookie(adminUsername, adminPassword) {
     const res = await fetch(BASE_URL + '/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'x-csrf-token': csrfToken,
+            Cookie: csrfCookie,
+        },
         body: new URLSearchParams({
             identifier: adminUsername,
             password: adminPassword,
@@ -113,7 +141,7 @@ async function loginAdminAndGetCookie(adminUsername, adminPassword) {
         return { cookie: null, refreshToken: null, status: res.status };
     }
     return {
-        cookie: `accessToken=${mAccess[1]}; refreshToken=${mRefresh[1]}`,
+        cookie: `accessToken=${mAccess[1]}; refreshToken=${mRefresh[1]}; ${csrfCookie}`,
         refreshToken: mRefresh[1],
         status: res.status,
     };
@@ -129,6 +157,10 @@ async function main() {
     await mongoose.connection.db.collection('users').deleteMany({});
     await mongoose.connection.db.collection('sessions').deleteMany({});
     console.log('Hard-cleared courses + users + sessions collections\n');
+
+    // Lấy CSRF token + cookie _csrf (trước khi login — login cũng cần token)
+    await fetchCsrf();
+    console.log('[Setup] CSRF token OK\n');
 
     // Tạo admin test trực tiếp qua model (tránh luồng register luôn tạo role 'user')
     const ADMIN_USERNAME = 'testadmin';
@@ -351,9 +383,9 @@ async function main() {
         });
         const count = await Course.countDocuments({ name: 'No Auth Test' });
         report(
-            'Case 10: không có cookie -> bị chặn (302/401), không tạo bản ghi',
-            (res.status === 302 || res.status === 401) && count === 0,
-            `HTTP=${res.status}, số bản ghi=${count} (kỳ vọng redirect/401, 0 bản ghi)`,
+            'Case 10: không có cookie -> bị chặn (302/401/403), không tạo bản ghi',
+            (res.status === 302 || res.status === 401 || res.status === 403) && count === 0,
+            `HTTP=${res.status}, số bản ghi=${count} (kỳ vọng redirect/401/403, 0 bản ghi)`,
         );
     }
 
@@ -400,7 +432,8 @@ async function main() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}`,
+                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}; ${csrfCookie}`,
+                'x-csrf-token': csrfToken,
             },
             body: new URLSearchParams({
                 name: 'Refresh Test',
@@ -430,7 +463,8 @@ async function main() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}`,
+                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}; ${csrfCookie}`,
+                'x-csrf-token': csrfToken,
             },
             body: new URLSearchParams({
                 name: 'Refresh Token Change Test',
@@ -458,14 +492,20 @@ async function main() {
         // 1. Refresh với token hợp lệ -> 200
         const resRefreshOk = await fetch(BASE_URL + '/auth/refresh', {
             method: 'POST',
-            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            headers: {
+                Cookie: `refreshToken=${adminRefreshToken}; ${csrfCookie}`,
+                'x-csrf-token': csrfToken,
+            },
             redirect: 'manual',
         });
 
         // 2. Logout -> xóa session
         const resLogout = await fetch(BASE_URL + '/auth/logout', {
             method: 'POST',
-            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            headers: {
+                Cookie: `refreshToken=${adminRefreshToken}; ${csrfCookie}`,
+                'x-csrf-token': csrfToken,
+            },
             redirect: 'manual',
         });
 
@@ -477,7 +517,10 @@ async function main() {
         // 4. Refresh lại với token cũ -> phải bị từ chối
         const resRefreshAfterLogout = await fetch(BASE_URL + '/auth/refresh', {
             method: 'POST',
-            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            headers: {
+                Cookie: `refreshToken=${adminRefreshToken}; ${csrfCookie}`,
+                'x-csrf-token': csrfToken,
+            },
             redirect: 'manual',
         });
 
