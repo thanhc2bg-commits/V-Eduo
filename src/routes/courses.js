@@ -2,21 +2,30 @@ const express = require('express');
 const router = express.Router();
 
 const Controller = require('../app/controllers/CourseController');
+const { requireAuth, requireRole } = require('../app/middlewares/auth');
 
-router.get('/create', Controller.create);
+// Các route quản trị — cần đăng nhập + role admin
+const adminOnly = [requireAuth, requireRole('admin')];
 
-router.post('/store', Controller.store);
+router.get('/create', adminOnly, Controller.create);
 
-router.get('/:id/edit', Controller.edit);
+router.post('/store', adminOnly, Controller.store);
 
-router.put('/:id', Controller.update);
+router.get('/:id/edit', adminOnly, Controller.edit);
 
-router.patch('/:id/restore', Controller.restore);
+router.put('/:id', adminOnly, Controller.update);
 
-router.delete('/:id', Controller.destroy);
+router.patch('/:id/restore', adminOnly, Controller.restore);
 
-router.delete('/:id/force', Controller.forceDestroy);
+router.delete('/:id', adminOnly, Controller.destroy);
 
+router.delete('/:id/force', adminOnly, Controller.forceDestroy);
+
+router.post('/playlist/items', adminOnly, Controller.fetchPlaylist);
+
+router.post('/playlist/store', adminOnly, Controller.storePlaylist);
+
+// Route công khai — không cần đăng nhập
 router.get('/:slug', Controller.show);
 
 module.exports = router;

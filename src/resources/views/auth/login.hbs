@@ -1,0 +1,28 @@
+<div class="container my-5" style="max-width: 420px;">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="text-center mb-4">Đăng nhập</h2>
+
+            {{#if error}}
+            <div class="alert alert-danger py-2">{{error}}</div>
+            {{/if}}
+
+            <form method="POST" action="/auth/login">
+                <div class="mb-3">
+                    <label for="identifier" class="form-label">Tên đăng nhập hoặc Email</label>
+                    <input type="text" id="identifier" name="identifier" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Mật khẩu</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+            </form>
+
+            <p class="text-center mt-3 mb-0">
+                Chưa có tài khoản?
+                <a href="/auth/register">Đăng ký</a>
+            </p>
+        </div>
+    </div>
+</div>

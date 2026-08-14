@@ -1,0 +1,3 @@
+◇ injected env (9) from .env // tip: ⌘ enable debugging { debug: true }
+Example app listening on port 3000
+Connected to MongoDB

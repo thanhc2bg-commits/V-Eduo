@@ -11,17 +11,34 @@
 
     <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
       <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="user-avatar">
-            Phụng
-          </a>
-          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="navbarDarkDropdownMenuLink">
-            <li><a class="dropdown-item" href="/courses/create">Đăng khóa học</a></li>
-            <li><a class="dropdown-item" href="/me/courses/stored">Khóa học của tôi</a></li>
-            <li><a class="dropdown-item" href="/me/stored/news">Bài đăng của tôi</a></li>
-          </ul>
-        </li>
+        {{#if user}}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="user-avatar">
+              {{user.name}}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="navbarDarkDropdownMenuLink">
+              {{#if (eq user.role 'admin')}}
+                <li><a class="dropdown-item" href="/courses/create">Đăng khóa học</a></li>
+                <li><a class="dropdown-item" href="/me/courses/stored">Khóa học của tôi</a></li>
+              {{/if}}
+              <li><a class="dropdown-item" href="/me/stored/news">Bài đăng của tôi</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="POST" action="/auth/logout" class="dropdown-item p-0">
+                  <button type="submit" class="btn btn-link dropdown-item text-start w-100">Đăng xuất</button>
+                </form>
+              </li>
+            </ul>
+          </li>
+        {{else}}
+          <li class="nav-item">
+            <a class="nav-link" href="/auth/login">Đăng nhập</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/auth/register">Đăng ký</a>
+          </li>
+        {{/if}}
       </ul>
     </div>
   </div>

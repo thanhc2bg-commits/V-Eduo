@@ -1,2 +1,6 @@
 node_modules/
 src/public/css/
+.env
+
+# Backup DB
+backup/

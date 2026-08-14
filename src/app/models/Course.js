@@ -20,6 +20,11 @@ const Course = new Schema(
         videoid: { type: String, required: true },
         level: { type: String },
         slug: { type: String, unique: true },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false,
+        },
     },
     {
         timestamps: true,

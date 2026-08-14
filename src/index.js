@@ -1,12 +1,15 @@
+require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const methodOverride = require('method-override');
+const cookieParser = require('cookie-parser');
 const handlebars = require('express-handlebars');
-const port = 3000;
+const port = process.env.PORT || 3000;
 const route = require('./routes');
 const db = require('./config/db');
+const { attachUser } = require('./app/middlewares/auth');
 //connect to db
 db.connect();
 
@@ -23,6 +26,10 @@ app.use(
 );
 app.use(express.json());
 app.use(methodOverride('_method'));
+app.use(cookieParser());
+
+// Gắn req.user + res.locals.user từ cookie token (chạy trước routes)
+app.use(attachUser);
 // bootstrap 5
 app.use(
     '/bootstrap',
@@ -41,6 +48,7 @@ app.engine(
         extname: '.hbs',
         helpers: {
             sum: (a, b) => a + b,
+            eq: (a, b) => a === b,
         },
     }),
 );

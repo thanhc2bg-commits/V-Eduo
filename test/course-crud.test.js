@@ -4,34 +4,48 @@
  * Yêu cầu:
  *  - MongoDB local đang chạy (mongodb://localhost:27017/V-connect-dev)
  *  - Server đang chạy tại http://localhost:3000 (npm start)
+ *  - JWT_SECRET trong .env (server load qua dotenv)
  *
  * Chạy: node test/course-crud.test.js
  *
- * LƯU Ý: Script sẽ XÓA TOÀN BỘ collection courses trước khi test
- * để kết quả slug xác định.
+ * LƯU Ý: Script sẽ XÓA TOÀN BỘ collection courses (hard delete) trước khi test
+ * để kết quả slug xác định, đồng thời tạo 1 admin test và xóa sau khi test xong.
  */
 
+require('dotenv').config();
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const Course = require('../src/app/models/Course');
+const User = require('../src/app/models/User');
+const Session = require('../src/app/models/Session');
 
 const BASE_URL = 'http://localhost:3000';
 const MONGODB_URI =
     process.env.MONGODB_URI || 'mongodb://localhost:27017/V-connect-dev';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('Thiếu JWT_SECRET trong .env');
+}
 
 // ------ Check an toàn: chỉ cho phép chạy trên DB dev/test ------
-// Script này tự XÓA TOÀN BỘ collection courses — không được chạy trên DB
-// có dữ liệu thật. DB dev hiện tại: V-connect-dev.
 if (!/test|dev/i.test(MONGODB_URI)) {
     throw new Error(
         `Không chạy test script trên DB không phải dev/test! (URI: ${MONGODB_URI})`,
     );
 }
 
+let adminCookie = '';
+let adminId = null;
+let adminRefreshToken = '';
+
 // ---------- Helpers HTTP (không follow redirect để thấy status 302) ----------
 async function httpPost(path, data) {
     return fetch(BASE_URL + path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Cookie: adminCookie,
+        },
         body: new URLSearchParams(data).toString(),
         redirect: 'manual',
     });
@@ -40,7 +54,10 @@ async function httpPost(path, data) {
 async function httpPut(path, data) {
     return fetch(BASE_URL + path, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Cookie: adminCookie,
+        },
         body: new URLSearchParams(data).toString(),
         redirect: 'manual',
     });
@@ -49,6 +66,7 @@ async function httpPut(path, data) {
 async function httpDelete(path) {
     return fetch(BASE_URL + path, {
         method: 'DELETE',
+        headers: { Cookie: adminCookie },
         redirect: 'manual',
     });
 }
@@ -72,13 +90,69 @@ function isControlled(status) {
     return allowedStatuses.has(status);
 }
 
+// ---------- Login admin qua HTTP thật (lấy 2 cookie: accessToken + refreshToken) ----------
+async function loginAdminAndGetCookie(adminUsername, adminPassword) {
+    const res = await fetch(BASE_URL + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            identifier: adminUsername,
+            password: adminPassword,
+        }).toString(),
+        redirect: 'manual',
+    });
+    let setCookie = '';
+    if (typeof res.headers.getSetCookie === 'function') {
+        setCookie = res.headers.getSetCookie().join('; ');
+    } else {
+        setCookie = res.headers.get('set-cookie') || '';
+    }
+    const mAccess = setCookie.match(/accessToken=([^;]+)/);
+    const mRefresh = setCookie.match(/refreshToken=([^;]+)/);
+    if (!mAccess || !mRefresh) {
+        return { cookie: null, refreshToken: null, status: res.status };
+    }
+    return {
+        cookie: `accessToken=${mAccess[1]}; refreshToken=${mRefresh[1]}`,
+        refreshToken: mRefresh[1],
+        status: res.status,
+    };
+}
+
 // ---------- Main ----------
 async function main() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    await Course.deleteMany({});
-    console.log('Cleared courses collection\n');
+    // Hard-clean courses + users + sessions (raw collection, vì deleteMany bị soft-delete override)
+    await mongoose.connection.db.collection('courses').deleteMany({});
+    await mongoose.connection.db.collection('users').deleteMany({});
+    await mongoose.connection.db.collection('sessions').deleteMany({});
+    console.log('Hard-cleared courses + users + sessions collections\n');
+
+    // Tạo admin test trực tiếp qua model (tránh luồng register luôn tạo role 'user')
+    const ADMIN_USERNAME = 'testadmin';
+    const ADMIN_PASSWORD = 'TestAdmin@123';
+    const admin = await User.create({
+        name: 'Test Admin',
+        username: ADMIN_USERNAME,
+        email: 'testadmin@example.com',
+        password: ADMIN_PASSWORD,
+        role: 'admin',
+    });
+    adminId = admin._id;
+
+    // Login qua HTTP để lấy cookie JWT
+    const login = await loginAdminAndGetCookie(ADMIN_USERNAME, ADMIN_PASSWORD);
+    if (!login.cookie) {
+        console.error(`KHÔNG lấy được cookie admin — login status=${login.status}`);
+        console.error('Có thể server chưa chạy hoặc JWT_SECRET không khớp .env');
+        await mongoose.disconnect();
+        process.exit(1);
+    }
+    adminCookie = login.cookie;
+    adminRefreshToken = login.refreshToken;
+    console.log(`[Setup] Admin test đã login — cookie OK (status=${login.status})\n`);
 
     // ===== A. CREATE =====
 
@@ -267,7 +341,27 @@ async function main() {
 
     // ===== C. DELETE =====
 
-    // Case 11: xóa rồi tạo lại tên y hệt -> slug quay lại gốc
+    // Case 10 (auth): request KHÔNG có cookie -> bị chặn (302 redirect hoặc 401)
+    {
+        const res = await fetch(BASE_URL + '/courses/store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ name: 'No Auth Test', videoid: 'vid-noauth' }).toString(),
+            redirect: 'manual',
+        });
+        const count = await Course.countDocuments({ name: 'No Auth Test' });
+        report(
+            'Case 10: không có cookie -> bị chặn (302/401), không tạo bản ghi',
+            (res.status === 302 || res.status === 401) && count === 0,
+            `HTTP=${res.status}, số bản ghi=${count} (kỳ vọng redirect/401, 0 bản ghi)`,
+        );
+    }
+
+    // Case 11: xóa rồi tạo lại tên y hệt.
+    // LƯU Ý: dự án dùng SOFT-DELETE (mongoose-delete, thùng rác) — bản đã xóa vẫn
+    // còn trong collection và "giữ chỗ" slug gốc. Vì vậy tạo lại cùng tên sẽ được
+    // sinh slug "reuse-slug-test-1" (không phải quay lại "reuse-slug-test").
+    // Đây là hành vi ĐÚNG và an toàn với soft-delete, không phải bug.
     {
         const created = await Course.create({
             name: 'Reuse Slug Test',
@@ -283,14 +377,218 @@ async function main() {
         const recreated = await Course.findOne({ name: 'Reuse Slug Test' }).lean();
 
         report(
-            'Case 11: xóa rồi tạo lại -> slug quay lại "reuse-slug-test"',
+            'Case 11: xóa (soft) rồi tạo lại -> slug "reuse-slug-test-1" (bản deleted giữ chỗ slug gốc)',
             countAfterDel === 0 &&
                 recreated &&
-                recreated.slug === 'reuse-slug-test' &&
+                recreated.slug === 'reuse-slug-test-1' &&
                 !resCreate.status.toString().startsWith('5'),
             `HTTP delete=${resDel.status}, HTTP create=${resCreate.status}, slug mới="${recreated && recreated.slug}"`,
         );
     }
+
+    // ===== C2. REFRESH TOKEN =====
+
+    // Case 11b: access token hết hạn -> middleware tự refresh, request vẫn qua
+    {
+        // Tạo access token hết hạn ngay (TTL 1ms) nhưng giữ refreshToken hợp lệ
+        const expiredAccess = jwt.sign(
+            { id: adminId, username: 'testadmin', name: 'Test Admin', role: 'admin' },
+            JWT_SECRET,
+            { expiresIn: '1ms' },
+        );
+        const res = await fetch(BASE_URL + '/courses/store', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}`,
+            },
+            body: new URLSearchParams({
+                name: 'Refresh Test',
+                videoid: 'vid-refresh',
+            }).toString(),
+            redirect: 'manual',
+        });
+        const doc = await Course.findOne({ name: 'Refresh Test' }).lean();
+        report(
+            'Case 11b: access token hết hạn -> tự refresh, request qua được',
+            doc && doc.slug === 'refresh-test' && !res.status.toString().startsWith('5'),
+            `HTTP=${res.status}, slug="${doc && doc.slug}" (kỳ vọng tạo thành công, không 401)`,
+        );
+    }
+
+    // Case 11d: accessToken cookie phải ĐỔI GIÁ TRỊ sau khi refresh.
+    // LƯU Ý: JWT sign cùng payload + secret trong cùng 1 giây sẽ tạo token GIỐNG HỆT
+    // (vì exp tính theo giây). Vì vậy so sánh token mới với token HẾT HẠN đã gửi đi
+    // (chắc chắn khác) thay vì token gốc từ lúc login.
+    {
+        const expiredAccess = jwt.sign(
+            { id: adminId, username: 'testadmin', name: 'Test Admin', role: 'admin' },
+            JWT_SECRET,
+            { expiresIn: '1ms' },
+        );
+        const res = await fetch(BASE_URL + '/courses/store', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Cookie: `accessToken=${expiredAccess}; refreshToken=${adminRefreshToken}`,
+            },
+            body: new URLSearchParams({
+                name: 'Refresh Token Change Test',
+                videoid: 'vid-refresh-change',
+            }).toString(),
+            redirect: 'manual',
+        });
+        let setCookie = '';
+        if (typeof res.headers.getSetCookie === 'function') {
+            setCookie = res.headers.getSetCookie().join('; ');
+        } else {
+            setCookie = res.headers.get('set-cookie') || '';
+        }
+        const mNewAccess = setCookie.match(/accessToken=([^;]+)/);
+        const newAccess = mNewAccess ? mNewAccess[1] : null;
+        report(
+            'Case 11d: accessToken cookie đổi giá trị sau khi refresh',
+            newAccess && newAccess !== expiredAccess && !res.status.toString().startsWith('5'),
+            `new=${newAccess ? newAccess.slice(0, 20) + '...' : 'null'} khác expired=${expiredAccess.slice(0, 20)}..., HTTP=${res.status}`,
+        );
+    }
+
+    // Case 11c: refresh token cũ sau logout phải bị từ chối + session bị xóa
+    {
+        // 1. Refresh với token hợp lệ -> 200
+        const resRefreshOk = await fetch(BASE_URL + '/auth/refresh', {
+            method: 'POST',
+            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            redirect: 'manual',
+        });
+
+        // 2. Logout -> xóa session
+        const resLogout = await fetch(BASE_URL + '/auth/logout', {
+            method: 'POST',
+            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            redirect: 'manual',
+        });
+
+        // 3. Session phải bị xóa khỏi DB
+        const sessionAfterLogout = await Session.collection.findOne({
+            refreshToken: adminRefreshToken,
+        });
+
+        // 4. Refresh lại với token cũ -> phải bị từ chối
+        const resRefreshAfterLogout = await fetch(BASE_URL + '/auth/refresh', {
+            method: 'POST',
+            headers: { Cookie: `refreshToken=${adminRefreshToken}` },
+            redirect: 'manual',
+        });
+
+        report(
+            'Case 11c: refresh sau logout bị từ chối + session bị xóa',
+            resRefreshOk.status === 200 &&
+                resLogout.status === 302 &&
+                sessionAfterLogout === null &&
+                (resRefreshAfterLogout.status === 401 ||
+                    resRefreshAfterLogout.status === 403),
+            `refresh trước logout=${resRefreshOk.status}, logout=${resLogout.status}, session còn=${!!sessionAfterLogout}, refresh sau logout=${resRefreshAfterLogout.status}`,
+        );
+    }
+
+    // Case 11e: TTL index của Session tồn tại đúng cấu hình
+    {
+        const indexes = await Session.collection.indexes();
+        const ttlIndex = indexes.find((idx) => idx.key && idx.key.expiresAt === 1);
+        report(
+            'Case 11e: TTL index Session (expiresAt, expireAfterSeconds=0) tồn tại',
+            !!ttlIndex && ttlIndex.expireAfterSeconds === 0,
+            `indexes=${JSON.stringify(
+                indexes.map((i) => ({
+                    name: i.name,
+                    key: i.key,
+                    expireAfterSeconds: i.expireAfterSeconds,
+                })),
+            )}`,
+        );
+    }
+
+    // ===== C3. PHÂN QUYỀN /me/courses/stored =====
+
+    // Tạo user thường (role 'user') để test phân quyền
+    const normalUser = await User.create({
+        name: 'Normal User',
+        username: 'normaluser',
+        email: 'normaluser@example.com',
+        password: 'NormalUser@123',
+        role: 'user',
+    });
+    const normalLogin = await loginAdminAndGetCookie('normaluser', 'NormalUser@123');
+    const normalCookie = normalLogin.cookie;
+
+    // Case 11f: user thường (role user) gọi /me/courses/stored -> 403 render errors/403
+    {
+        const res = await fetch(BASE_URL + '/me/courses/stored', {
+            method: 'GET',
+            headers: { Cookie: normalCookie },
+            redirect: 'manual',
+        });
+        const body = await res.text();
+        report(
+            'Case 11f: user thường gọi /me/courses/stored -> 403 + render errors/403',
+            res.status === 403 &&
+                body.includes('Không có quyền truy cập') &&
+                body.includes('403'),
+            `HTTP=${res.status}, body chứa "Không có quyền truy cập"=${body.includes('Không có quyền truy cập')}, body chứa "403"=${body.includes('403')}`,
+        );
+    }
+
+    // Case 11g: user thường + Accept: application/json -> 403 JSON
+    {
+        const res = await fetch(BASE_URL + '/me/courses/stored', {
+            method: 'GET',
+            headers: { Cookie: normalCookie, Accept: 'application/json' },
+            redirect: 'manual',
+        });
+        const json = await res.json().catch(() => null);
+        report(
+            'Case 11g: user thường + Accept JSON -> 403 JSON',
+            res.status === 403 && json && json.error === 'Không có quyền truy cập',
+            `HTTP=${res.status}, json=${JSON.stringify(json)}`,
+        );
+    }
+
+    // Case 11h: chưa login + Accept: application/json -> 401 JSON
+    {
+        const res = await fetch(BASE_URL + '/me/courses/stored', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            redirect: 'manual',
+        });
+        const json = await res.json().catch(() => null);
+        report(
+            'Case 11h: chưa login + Accept JSON -> 401 JSON',
+            res.status === 401 && json && json.error === 'Cần đăng nhập',
+            `HTTP=${res.status}, json=${JSON.stringify(json)}`,
+        );
+    }
+
+    // Case 11i: admin gọi /me/courses/stored -> 200 render stored-course
+    {
+        const res = await fetch(BASE_URL + '/me/courses/stored', {
+            method: 'GET',
+            headers: { Cookie: adminCookie },
+            redirect: 'manual',
+        });
+        const body = await res.text();
+        report(
+            'Case 11i: admin gọi /me/courses/stored -> 200 render stored-course',
+            res.status === 200 && body.includes('Khóa học của tôi'),
+            `HTTP=${res.status}, body chứa "Khóa học của tôi"=${body.includes('Khóa học của tôi')}`,
+        );
+    }
+
+    // Dọn user thường
+    await mongoose.connection.db.collection('users').deleteOne({ _id: normalUser._id });
+    await mongoose.connection.db.collection('sessions').deleteMany({
+        userId: normalUser._id,
+    });
 
     // ===== D. KIỂM TRA CHUNG =====
 
@@ -315,6 +613,18 @@ async function main() {
             failures.every((f) => !/HTTP=5\d\d/.test(f.detail)),
             `số case FAIL có HTTP 5xx=${failures.filter((f) => /HTTP=5\d\d/.test(f.detail)).length}`,
         );
+    }
+
+    // ---------- Dọn dẹp test user + session ----------
+    if (adminId) {
+        await mongoose.connection.db.collection('users').deleteOne({ _id: adminId });
+        await mongoose.connection.db.collection('users').deleteOne({
+            username: ADMIN_USERNAME,
+        });
+        await mongoose.connection.db.collection('sessions').deleteMany({
+            userId: adminId,
+        });
+        console.log('\n[Cleanup] Đã xóa admin test + session khỏi DB');
     }
 
     // ---------- Tổng kết ----------
