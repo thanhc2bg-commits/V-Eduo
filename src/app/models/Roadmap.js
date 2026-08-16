@@ -3,32 +3,24 @@ const { generateUniqueSlug } = require('../../utils/slugify');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 
-const Course = new Schema(
+const Roadmap = new Schema(
     {
         name: {
             type: String,
             maxLength: 255,
-            required: [true, 'Tên khóa học không được để trống'],
+            required: [true, 'Tên lộ trình không được để trống'],
             trim: true,
             validate: {
                 validator: (value) => value.trim().length > 0,
-                message: 'Tên khóa học không được để trống',
+                message: 'Tên lộ trình không được để trống',
             },
         },
         description: { type: String },
-        image: { type: String },
-        videoid: { type: String, required: true },
-        level: { type: String },
         slug: { type: String, unique: true },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-            required: false,
-        },
-        roadmapId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Roadmap',
-            required: false,
+            required: true,
         },
         isPublic: { type: Boolean, default: true },
     },
@@ -38,10 +30,10 @@ const Course = new Schema(
 );
 
 // Tự sinh slug unique trước khi lưu (this là Document)
-Course.pre('save', async function () {
+Roadmap.pre('save', async function () {
     if (this.isModified('name') || !this.slug) {
         this.slug = await generateUniqueSlug(
-            mongoose.model('Course'),
+            mongoose.model('Roadmap'),
             this.name,
             this._id,
         );
@@ -49,7 +41,7 @@ Course.pre('save', async function () {
 });
 
 // Tự sinh slug unique trước khi cập nhật (this là Query object)
-Course.pre('findOneAndUpdate', async function () {
+Roadmap.pre('findOneAndUpdate', async function () {
     const query = this.getQuery();
     const update = this.getUpdate();
     const newName = update.name || (update.$set && update.$set.name);
@@ -70,7 +62,7 @@ Course.pre('findOneAndUpdate', async function () {
 // - Không gửi name (undefined): giữ nguyên slug cũ.
 // - Gửi name rỗng/space: KHÔNG set slug ở đây, để runValidators
 //   (đặt ở controller) bắt lỗi ValidationError và trả HTTP 400.
-Course.pre('updateOne', async function () {
+Roadmap.pre('updateOne', async function () {
     const query = this.getQuery();
     const update = this.getUpdate();
     const rawName =
@@ -89,13 +81,9 @@ Course.pre('updateOne', async function () {
     }
 });
 
-Course.plugin(mongooseDelete, {
+Roadmap.plugin(mongooseDelete, {
     deletedAt: true,
     overrideMethods: 'all',
 });
 
-// TODO (chưa fix trong đợt này): pre('findOneAndUpdate') chỉ đúng khi query theo _id.
-// Nếu query theo slug thì excludeId = undefined -> slug tự thêm hậu tố lạ.
-// Hiện không route nào dùng findOneAndUpdate nên để nguyên, ghi chú lại.
-
-module.exports = mongoose.model('Course', Course);
+module.exports = mongoose.model('Roadmap', Roadmap);

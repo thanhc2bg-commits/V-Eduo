@@ -13,6 +13,21 @@ const db = require('./config/db');
 const { attachUser } = require('./app/middlewares/auth');
 const { csrfToken, csrfProtection } = require('./app/middlewares/csrf');
 const corsMiddleware = require('./app/middlewares/cors');
+
+// Fail-fast: từ chối khởi động nếu thiếu cấu hình bắt buộc (tránh chạy sai âm thầm)
+if (!process.env.JWT_SECRET) {
+    throw new Error('Thiếu JWT_SECRET trong .env');
+}
+if (!process.env.MONGODB_URI) {
+    throw new Error('Thiếu MONGODB_URI trong .env');
+}
+
+// Tin tưởng 1 hop proxy đầu tiên (Nginx/PM2/Render/Heroku...) để:
+// - rate-limit đọc đúng IP thật của user (X-Forwarded-For)
+// - CORS same-origin so sánh đúng host
+// - cookie secure hoạt động khi proxy chuyển HTTPS → HTTP nội bộ
+app.set('trust proxy', 1);
+
 //connect to db
 db.connect();
 
@@ -54,6 +69,13 @@ app.use(cookieParser());
 
 // CSRF: gắn token vào res.locals cho mọi request (GET render form dùng được)
 app.use(csrfToken);
+
+// Route dev-only: GET /dev/csrf-token — trả CSRF token JSON để test qua Postman.
+// Chỉ hoạt động khi NODE_ENV !== 'production' (trả 404 nếu production).
+// Đặt SAU app.use(csrfToken) để res.locals.csrfToken đã có giá trị.
+// GET nên không bị chặn bởi csrfProtection (ignoredMethods: ['GET', 'HEAD', 'OPTIONS']).
+const devRouter = require('./routes/dev');
+app.use('/dev', devRouter);
 
 // CSRF protection — chặn mọi request thay đổi (POST/PUT/PATCH/DELETE) thiếu token
 app.use(csrfProtection);
@@ -102,7 +124,17 @@ app.use((err, req, res, next) => {
             .json({ error: 'Trùng dữ liệu, vui lòng thử lại' });
     }
     console.error(err);
-    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+    // Request API (Accept: application/json) -> trả JSON
+    // Request trang HTML -> render trang 500 riêng (standalone, không dùng layout)
+    const wantsJson =
+        req.headers.accept && req.headers.accept.includes('application/json');
+    if (wantsJson) {
+        return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+    }
+    res.status(500).render('errors/500', {
+        layout: false,
+        error: 'Đã có lỗi xảy ra, vui lòng thử lại sau',
+    });
 });
 
 app.listen(port, () => {

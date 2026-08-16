@@ -32,6 +32,7 @@ const User = new Schema(
             minLength: [8, 'Mật khẩu phải có ít nhất 8 ký tự'],
         },
         role: { type: String, enum: ['user', 'admin'], default: 'user' },
+        plan: { type: String, enum: ['free', 'pro'], default: 'free' },
     },
     {
         timestamps: true,

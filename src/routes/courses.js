@@ -2,29 +2,41 @@ const express = require('express');
 const router = express.Router();
 
 const Controller = require('../app/controllers/CourseController');
+const ModuleController = require('../app/controllers/ModuleController');
 const { requireAuth, requireRole } = require('../app/middlewares/auth');
+const { checkOwnership } = require('../app/middlewares/checkOwnership');
 const { apiLimiter } = require('../app/middlewares/rateLimit');
+const Course = require('../app/models/Course');
 
 // Các route quản trị — cần đăng nhập + role admin
 const adminOnly = [requireAuth, requireRole('admin')];
 
 router.get('/create', adminOnly, Controller.create);
 
-router.post('/store', adminOnly, Controller.store);
+// Tạo Course — bất kỳ user đã login (UGC), không cần admin
+router.post('/store', requireAuth, Controller.store);
 
-router.get('/:id/edit', adminOnly, Controller.edit);
+// User sở hữu Course (hoặc admin) được xem form sửa
+router.get('/:id/edit', requireAuth, checkOwnership(Course), Controller.edit);
 
-router.put('/:id', adminOnly, Controller.update);
+// User sở hữu Course (hoặc admin) được cập nhật
+router.put('/:id', requireAuth, checkOwnership(Course), Controller.update);
 
+// Chỉ admin được khôi phục
 router.patch('/:id/restore', adminOnly, Controller.restore);
 
-router.delete('/:id', adminOnly, Controller.destroy);
+// User sở hữu Course (hoặc admin) được xóa mềm
+router.delete('/:id', requireAuth, checkOwnership(Course), Controller.destroy);
 
+// Chỉ admin được xóa vĩnh viễn
 router.delete('/:id/force', adminOnly, Controller.forceDestroy);
 
 router.post('/playlist/items', apiLimiter, adminOnly, Controller.fetchPlaylist);
 
 router.post('/playlist/store', apiLimiter, adminOnly, Controller.storePlaylist);
+
+// Tạo module mới trong Course — cần đăng nhập + kiểm tra quyền sở hữu Course (inline trong controller)
+router.post('/:courseId/modules', requireAuth, ModuleController.store);
 
 // Route công khai — không cần đăng nhập
 router.get('/:slug', Controller.show);

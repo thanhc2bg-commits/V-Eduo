@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-08-15T07:02:50.104Z",
+  "totalCourses": 5,
+  "migrated": [],
+  "skipped": [
+    {
+      "courseId": "6a7fd1e8a6b90897cef0f43f",
+      "reason": "đã migrate trước đó"
+    },
+    {
+      "courseId": "6a7fd6dc0c3bcc5e9d941ccd",
+      "reason": "đã migrate trước đó"
+    },
+    {
+      "courseId": "6a7fd7160c3bcc5e9d941cce",
+      "reason": "đã migrate trước đó"
+    },
+    {
+      "courseId": "6a7fd8100c3bcc5e9d941ccf",
+      "reason": "đã migrate trước đó"
+    },
+    {
+      "courseId": "6a7fd8100c3bcc5e9d941cd0",
+      "reason": "đã migrate trước đó"
+    }
+  ],
+  "errors": []
+}

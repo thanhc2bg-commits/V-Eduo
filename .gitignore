@@ -4,3 +4,8 @@ src/public/css/
 
 # Backup DB
 backup/
+
+# Log files
+server.log
+server.err.log
+*.log

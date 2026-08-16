@@ -28,14 +28,18 @@ class CourseController {
     }
 
     //[POST] /courses/store
+    // Bất kỳ user đã login — createdBy LUÔN lấy từ req.user.id, không tin client
     store(req, res, next) {
         const { ok, error } = validateCourse(req.body);
         if (!ok) {
             return res.status(400).send(error);
         }
 
-        const formData = req.body;
+        // Copy body nhưng LOẠI BỎ createdBy nếu client cố tình gửi lên
+        const formData = { ...req.body };
+        delete formData.createdBy;
         formData.image = `https://img.youtube.com/vi/${formData.videoid}/sddefault.jpg`;
+        formData.createdBy = req.user.id; // bảo mật: luôn lấy từ token
         const course = new Course(formData);
 
         course
