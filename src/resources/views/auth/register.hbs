@@ -4,7 +4,7 @@
             <h2 class="text-center mb-4">Đăng ký</h2>
 
             {{#if error}}
-            <div class="alert alert-danger py-2">{{error}}</div>
+            <div class="alert alert-danger py-2" role="alert">{{error}}</div>
             {{/if}}
 
             <form method="POST" action="/auth/register">
@@ -12,21 +12,22 @@
                 <div class="mb-3">
                     <label for="name" class="form-label">Họ tên</label>
                     <input type="text" id="name" name="name" class="form-control"
-                        value="{{name}}" required autofocus>
+                        value="{{name}}" required autofocus autocomplete="name">
                 </div>
                 <div class="mb-3">
                     <label for="username" class="form-label">Tên đăng nhập</label>
                     <input type="text" id="username" name="username" class="form-control"
-                        value="{{username}}" required>
+                        value="{{username}}" required autocomplete="username">
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Email</label>
                     <input type="email" id="email" name="email" class="form-control"
-                        value="{{email}}" required>
+                        value="{{email}}" required autocomplete="email">
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">Mật khẩu (tối thiểu 8 ký tự)</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
+                    <input type="password" id="password" name="password" class="form-control"
+                        required minlength="8" autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
             </form>

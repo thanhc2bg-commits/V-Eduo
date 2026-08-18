@@ -1,46 +1,81 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center me-3" href="/">
-      <img src="/img/gemini.svg" alt="Logo" width="30" height="24" class="d-inline-block align-text-top me-2">
-      <span>V-conect</span>
-    </a>
+<header class="site-nav" role="banner">
+    <div class="site-nav__bar">
+        <!-- Brand -->
+        <a class="site-nav__brand" href="/" aria-label="V-Conect — trang chủ">
+            <img src="/img/gemini.svg" alt="" width="30" height="24" class="site-nav__logo">
+            <span class="site-nav__wordmark">V-Conect</span>
+        </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+        <!-- Center links (desktop) -->
+        <nav class="site-nav__links" aria-label="Điều hướng chính">
+            <a class="site-nav__link" href="/courses">Khóa học</a>
+            {{#if user}}
+                <a class="site-nav__link" href="/me/courses">Khóa học của tôi</a>
+            {{/if}}
+        </nav>
 
-    <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-      <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
-        {{#if user}}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="user-avatar">
-              {{user.name}}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="navbarDarkDropdownMenuLink">
-              {{#if (eq user.role 'admin')}}
-                <li><a class="dropdown-item" href="/courses/create">Đăng khóa học</a></li>
-                <li><a class="dropdown-item" href="/me/courses/stored">Khóa học của tôi</a></li>
-              {{/if}}
-              <li><a class="dropdown-item" href="/me/stored/news">Bài đăng của tôi</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <form method="POST" action="/auth/logout" class="dropdown-item p-0">
-                  <input type="hidden" name="_csrf" value="{{csrfToken}}">
-                  <button type="submit" class="btn btn-link dropdown-item text-start w-100">Đăng xuất</button>
-                </form>
-              </li>
-            </ul>
-          </li>
-        {{else}}
-          <li class="nav-item">
-            <a class="nav-link" href="/auth/login">Đăng nhập</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/auth/register">Đăng ký</a>
-          </li>
-        {{/if}}
-      </ul>
+        <!-- Right actions (desktop) -->
+        <div class="site-nav__actions">
+            {{#if user}}
+                <div class="site-nav__user dropdown">
+                    <button class="site-nav__user-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="site-nav__avatar">
+                        <span class="site-nav__user-name">{{user.name}}</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end site-nav__dropdown">
+                        {{#if (eq user.role 'admin')}}
+                            <li><a class="dropdown-item" href="/courses/create">Đăng khóa học</a></li>
+                            <li><a class="dropdown-item" href="/me/courses/stored">Khóa học của tôi</a></li>
+                        {{/if}}
+                        <li><a class="dropdown-item" href="/me/stored/news">Bài đăng của tôi</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="/auth/logout" class="dropdown-item p-0">
+                                <input type="hidden" name="_csrf" value="{{csrfToken}}">
+                                <button type="submit" class="btn btn-link dropdown-item text-start w-100">Đăng xuất</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            {{else}}
+                <a class="site-nav__link site-nav__link--signin" href="/auth/login">Đăng nhập</a>
+                <a class="site-nav__cta" href="/auth/register">Đăng ký</a>
+            {{/if}}
+        </div>
+
+        <!-- Mobile toggle -->
+        <button class="site-nav__toggle" type="button" data-bs-toggle="collapse" data-bs-target="#siteNavMobile" aria-controls="siteNavMobile" aria-expanded="false" aria-label="Mở menu điều hướng">
+            <span class="site-nav__toggle-bar"></span>
+            <span class="site-nav__toggle-bar"></span>
+            <span class="site-nav__toggle-bar"></span>
+        </button>
     </div>
-  </div>
-</nav>
+
+    <!-- Mobile collapse -->
+    <div class="collapse site-nav__mobile" id="siteNavMobile">
+        <nav class="site-nav__mobile-nav" aria-label="Điều hướng di động">
+            {{#if user}}
+                <div class="site-nav__mobile-user">
+                    <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="site-nav__avatar">
+                    <span class="site-nav__mobile-user-name">{{user.name}}</span>
+                </div>
+            {{/if}}
+            <a class="site-nav__mobile-link" href="/courses">Khóa học</a>
+            {{#if user}}
+                <a class="site-nav__mobile-link" href="/me/courses/stored">Khóa học của tôi</a>
+                {{#if (eq user.role 'admin')}}
+                    <a class="site-nav__mobile-link" href="/courses/create">Đăng khóa học</a>
+                {{/if}}
+                <a class="site-nav__mobile-link" href="/me/stored/news">Bài đăng của tôi</a>
+                <div class="site-nav__mobile-divider"></div>
+                <form method="POST" action="/auth/logout">
+                    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+                    <button type="submit" class="site-nav__mobile-link site-nav__mobile-link--logout">Đăng xuất</button>
+                </form>
+            {{else}}
+                <a class="site-nav__mobile-link" href="/auth/login">Đăng nhập</a>
+                <a class="site-nav__mobile-link site-nav__mobile-link--cta" href="/auth/register">Đăng ký</a>
+            {{/if}}
+        </nav>
+    </div>
+</header>

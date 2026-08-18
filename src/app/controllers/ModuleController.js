@@ -103,54 +103,66 @@ class ModuleController {
         }
     }
 
-    //[PATCH] /modules/:id/reorder
-    // requireAuth + checkCourseOwnership — nhận body { direction: 'up'|'down' }
-    // Hoán đổi order với module liền kề CÙNG courseId
-    async reorder(req, res, next) {
+    //[PUT] /courses/:courseId/modules/reorder
+    // Nhận danh sách ID Module theo thứ tự MỚI sau khi kéo-thả, gán lại order = 0,1,2...
+    // requireAuth — check quyền sở hữu Course qua :courseId trong URL (không qua checkCourseOwnership,
+    // vì route này không có :id của 1 resource đơn lẻ mà thao tác cả danh sách)
+    async reorderBulk(req, res, next) {
         try {
-            const module = req.resource;
-            const { direction } = req.body;
+            const { orderedIds } = req.body;
+            if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+                return res
+                    .status(400)
+                    .json({ error: 'orderedIds phải là mảng không rỗng' });
+            }
 
-            if (direction !== 'up' && direction !== 'down') {
+            const course = await Course.findById(req.params.courseId);
+            if (!course) {
+                return res
+                    .status(404)
+                    .json({ error: 'Không tìm thấy khóa học' });
+            }
+
+            const isOwner =
+                course.createdBy &&
+                req.user &&
+                course.createdBy.equals(req.user.id);
+            const isAdmin = req.user && req.user.role === 'admin';
+            if (!isOwner && !isAdmin) {
+                return res
+                    .status(403)
+                    .json({ error: 'Không có quyền truy cập' });
+            }
+
+            // Lấy toàn bộ Module thật sự thuộc Course này để đối chiếu — KHÔNG tin
+            // nguyên xi orderedIds từ client (có thể chứa ID của Course khác).
+            const actualModules = await Module.find({
+                courseId: course._id,
+            }).select('_id');
+            const actualIds = actualModules.map((m) => m._id.toString()).sort();
+            const requestedIds = [...orderedIds].sort();
+
+            if (
+                actualIds.length !== requestedIds.length ||
+                !actualIds.every((id, i) => id === requestedIds[i])
+            ) {
                 return res.status(400).json({
-                    error: "direction phải là 'up' hoặc 'down'",
+                    error: 'Danh sách ID không khớp với Module thực tế của khóa học này',
                 });
             }
 
-            // Tìm module liền kề cùng courseId
-            let neighbor;
-            if (direction === 'up') {
-                // Module có order nhỏ hơn, lớn nhất trong số nhỏ hơn
-                neighbor = await Module.findOne({
-                    courseId: module.courseId,
-                    order: { $lt: module.order },
-                }).sort({ order: -1 });
-            } else {
-                // Module có order lớn hơn, nhỏ nhất trong số lớn hơn
-                neighbor = await Module.findOne({
-                    courseId: module.courseId,
-                    order: { $gt: module.order },
-                }).sort({ order: 1 });
-            }
+            // Bulk update order theo đúng vị trí trong orderedIds
+            const bulkOps = orderedIds.map((id, index) => ({
+                updateOne: {
+                    filter: { _id: id, courseId: course._id },
+                    update: { order: index },
+                },
+            }));
+            await Module.bulkWrite(bulkOps);
 
-            if (!neighbor) {
-                return res
-                    .status(400)
-                    .json({ error: 'Không thể di chuyển — đã ở vị trí biên' });
-            }
-
-            // Hoán đổi order
-            const temp = module.order;
-            module.order = neighbor.order;
-            neighbor.order = temp;
-
-            await module.save();
-            await neighbor.save();
-
-            // Trả về danh sách modules của course để client render lại
-            const modules = await Module.find({
-                courseId: module.courseId,
-            }).sort({ order: 1 });
+            const modules = await Module.find({ courseId: course._id }).sort({
+                order: 1,
+            });
             res.json({ modules });
         } catch (err) {
             next(err);

@@ -1,13 +1,52 @@
 <div class="mt-4">
     <div class="row">
-        <div class="col-lg-3">
-            <button>HỌC NGAY</button>
+        <div class="col-lg-9">
+            <div class="ratio ratio-16x9">
+                <iframe id="main-player"
+                    src="https://www.youtube.com/embed/{{initialVideoId}}"
+                    title="YouTube video player" frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+            <h2 class="mt-3">{{course.name}}</h2>
+            <p>{{course.description}}</p>
         </div>
 
-        <div class="col-lg-9">
-            <h2>{{course.name}}</h2>
-            <iframe width="560" height="315" src="https://www.youtube.com/embed/{{course.videoid}}?si=7jPhMRDhSdlvPcip" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-            <p>{{course.description}}</p>
+        <div class="col-lg-3">
+            {{#if hasTree}}
+            <div class="course-tree">
+                {{#each modules}}
+                <div class="module-block mb-3">
+                    <h6>{{this.name}}</h6>
+                    <ul class="list-unstyled">
+                        {{#each this.videos}}
+                        <li>
+                            <a href="#" class="video-item"
+                                data-youtube-id="{{this.youtubeId}}">
+                                {{this.title}}
+                            </a>
+                        </li>
+                        {{/each}}
+                    </ul>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <p class="text-muted">Khóa học này chưa có cấu trúc Module/Video.</p>
+            {{/if}}
         </div>
     </div>
 </div>
+
+<script>
+    $(document).ready(function () {
+        $('.video-item').on('click', function (e) {
+            e.preventDefault();
+            const youtubeId = $(this).data('youtube-id');
+            $('#main-player').attr(
+                'src',
+                'https://www.youtube.com/embed/' + youtubeId,
+            );
+        });
+    });
+</script>

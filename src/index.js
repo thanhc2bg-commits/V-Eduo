@@ -37,12 +37,17 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    'https://cdnjs.cloudflare.com',
+                ],
                 styleSrc: ["'self'", "'unsafe-inline'"],
                 imgSrc: ["'self'", 'data:', 'https://img.youtube.com'],
                 connectSrc: ["'self'", 'https://www.youtube.com'],
                 fontSrc: ["'self'", 'data:'],
                 objectSrc: ["'none'"],
+                frameSrc: ["'self'", 'https://www.youtube.com'],
                 frameAncestors: ["'self'"],
             },
         },
@@ -101,6 +106,18 @@ app.engine(
         helpers: {
             sum: (a, b) => a + b,
             eq: (a, b) => a === b,
+            // Format Date thành DD/MM/YYYY. Trả về '—' nếu null/undefined/invalid.
+            formatDate: (date) => {
+                if (!date) return '—';
+                const d = new Date(date);
+                if (isNaN(d.getTime())) return '—';
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                return `${dd}/${mm}/${yyyy}`;
+            },
+            // Lấy năm hiện tại để hiển thị ở footer.
+            getCurrentYear: () => new Date().getFullYear(),
         },
     }),
 );

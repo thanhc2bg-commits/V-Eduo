@@ -4,18 +4,18 @@
             <h2 class="text-center mb-4">Đăng nhập</h2>
 
             {{#if error}}
-            <div class="alert alert-danger py-2">{{error}}</div>
+            <div class="alert alert-danger py-2" role="alert">{{error}}</div>
             {{/if}}
 
             <form method="POST" action="/auth/login">
                 <input type="hidden" name="_csrf" value="{{csrfToken}}">
                 <div class="mb-3">
                     <label for="identifier" class="form-label">Tên đăng nhập hoặc Email</label>
-                    <input type="text" id="identifier" name="identifier" class="form-control" required autofocus>
+                    <input type="text" id="identifier" name="identifier" class="form-control" required autofocus autocomplete="username">
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">Mật khẩu</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
+                    <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
             </form>

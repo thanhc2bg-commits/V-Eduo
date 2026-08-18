@@ -1,30 +1,37 @@
 const Roadmap = require('../models/Roadmap');
-const { mongooseToObject } = require('../../utils/mongoose');
+const Course = require('../models/Course');
+const {
+    mongooseToObject,
+    multipleMongooseToObject,
+} = require('../../utils/mongoose');
 
 class RoadmapController {
     //[GET] /roadmaps
-    // Public roadmap ai cũng xem được; nếu có req.user thì trả thêm roadmap private của chính user đó
     async index(req, res, next) {
         try {
             let query;
             if (req.user) {
-                // User đăng nhập: public + private của chính họ
                 query = {
                     $or: [{ isPublic: true }, { createdBy: req.user.id }],
                 };
             } else {
-                // Khách: chỉ thấy public
                 query = { isPublic: true };
             }
             const roadmaps = await Roadmap.find(query).sort({ createdAt: -1 });
-            res.json({ roadmaps });
+            res.render('roadmaps/index', {
+                roadmaps: multipleMongooseToObject(roadmaps),
+            });
         } catch (err) {
             next(err);
         }
     }
 
+    //[GET] /roadmaps/create
+    create(req, res) {
+        res.render('roadmaps/create');
+    }
+
     //[GET] /roadmaps/:slug
-    // Public roadmap ai cũng xem được; private chỉ chủ sở hữu hoặc admin
     async show(req, res, next) {
         try {
             const roadmap = await Roadmap.findOne({ slug: req.params.slug });
@@ -35,27 +42,13 @@ class RoadmapController {
                 });
             }
 
-            // Roadmap public → ai cũng xem được
-            if (roadmap.isPublic) {
-                return res.json({ roadmap: mongooseToObject(roadmap) });
-            }
-
-            // Roadmap private → chỉ chủ sở hữu hoặc admin
             const isOwner =
                 req.user &&
                 roadmap.createdBy &&
                 roadmap.createdBy.equals(req.user.id);
             const isAdmin = req.user && req.user.role === 'admin';
 
-            if (!isOwner && !isAdmin) {
-                const wantsJson =
-                    req.headers.accept &&
-                    req.headers.accept.includes('application/json');
-                if (wantsJson) {
-                    return res
-                        .status(403)
-                        .json({ error: 'Không có quyền truy cập' });
-                }
+            if (!roadmap.isPublic && !isOwner && !isAdmin) {
                 return res.status(403).render('errors/403', {
                     layout: false,
                     error: 'Bạn không có quyền truy cập trang này',
@@ -63,38 +56,78 @@ class RoadmapController {
                 });
             }
 
-            res.json({ roadmap: mongooseToObject(roadmap) });
+            const courses = await Course.find({ roadmapId: roadmap._id }).sort({
+                createdAt: 1,
+            });
+
+            res.render('roadmaps/show', {
+                roadmap: mongooseToObject(roadmap),
+                courses: multipleMongooseToObject(courses),
+                isOwner: !!isOwner,
+                isAdmin: !!isAdmin,
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[GET] /roadmaps/:id/edit
+    // requireAuth + checkOwnership(Roadmap) — req.resource là Roadmap
+    async edit(req, res, next) {
+        try {
+            const roadmap = req.resource;
+            const myCourses = await Course.find({
+                createdBy: req.user.id,
+            }).sort({
+                createdAt: -1,
+            });
+            const assignedIds = new Set(
+                myCourses
+                    .filter(
+                        (c) => c.roadmapId && c.roadmapId.equals(roadmap._id),
+                    )
+                    .map((c) => c._id.toString()),
+            );
+            const coursesWithFlag = myCourses.map((c) => ({
+                ...mongooseToObject(c),
+                assigned: assignedIds.has(c._id.toString()),
+            }));
+
+            res.render('roadmaps/edit', {
+                roadmap: mongooseToObject(roadmap),
+                courses: coursesWithFlag,
+            });
         } catch (err) {
             next(err);
         }
     }
 
     //[POST] /roadmaps
-    // Bất kỳ user đã login — tự động set createdBy = req.user.id, không cho client truyền
     async store(req, res, next) {
         try {
             const { name, description, isPublic } = req.body;
             if (!name || !String(name).trim()) {
-                return res
-                    .status(400)
-                    .json({ error: 'Tên lộ trình không được để trống' });
+                return res.status(400).send('Tên lộ trình không được để trống');
             }
 
             const roadmap = new Roadmap({
                 name,
                 description,
-                isPublic: isPublic !== undefined ? isPublic : true,
-                createdBy: req.user.id, // bảo mật: luôn lấy từ token, không tin client
+                isPublic:
+                    isPublic !== undefined
+                        ? isPublic === 'on' || isPublic === true
+                        : true,
+                createdBy: req.user.id,
             });
             await roadmap.save();
-            res.status(201).json({ roadmap: mongooseToObject(roadmap) });
+            res.redirect('/roadmaps/' + roadmap._id + '/edit');
         } catch (err) {
             next(err);
         }
     }
 
     //[PUT] /roadmaps/:id
-    // requireAuth + checkOwnership(Roadmap) — req.resource đã có document từ middleware
+    // requireAuth + checkOwnership(Roadmap)
     async update(req, res, next) {
         try {
             const roadmap = req.resource;
@@ -104,30 +137,87 @@ class RoadmapController {
                 if (!String(name).trim()) {
                     return res
                         .status(400)
-                        .json({ error: 'Tên lộ trình không được để trống' });
+                        .send('Tên lộ trình không được để trống');
                 }
                 roadmap.name = name;
             }
-            if (description !== undefined) {
-                roadmap.description = description;
-            }
+            if (description !== undefined) roadmap.description = description;
             if (isPublic !== undefined) {
-                roadmap.isPublic = isPublic;
+                roadmap.isPublic = isPublic === 'on' || isPublic === true;
             }
 
             await roadmap.save();
-            res.json({ roadmap: mongooseToObject(roadmap) });
+            res.redirect('/roadmaps/' + roadmap._id + '/edit');
         } catch (err) {
             next(err);
         }
     }
 
     //[DELETE] /roadmaps/:id
-    // requireAuth + checkOwnership(Roadmap) — soft delete
+    // requireAuth + checkOwnership(Roadmap)
     async destroy(req, res, next) {
         try {
             await Roadmap.delete({ _id: req.params.id });
-            res.json({ message: 'Đã xóa lộ trình' });
+            res.redirect('/me/roadmaps');
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[PUT] /roadmaps/:id/courses
+    // requireAuth + checkOwnership(Roadmap) — gán/bỏ gán Course vào Roadmap.
+    // Body: { courseIds: [...] } — danh sách Course MUỐN gán (đầy đủ, không phải delta).
+    async assignCourses(req, res, next) {
+        try {
+            const roadmap = req.resource;
+            const { courseIds } = req.body;
+            if (!Array.isArray(courseIds)) {
+                return res
+                    .status(400)
+                    .json({ error: 'courseIds phải là mảng' });
+            }
+
+            // Chỉ cho phép gán Course CỦA CHÍNH user này — không tin ID từ client
+            // mà không đối chiếu quyền sở hữu.
+            const myCourses = await Course.find({
+                createdBy: req.user.id,
+            }).select('_id roadmapId');
+            const myCourseIds = new Set(myCourses.map((c) => c._id.toString()));
+
+            const validRequestedIds = courseIds.filter((id) =>
+                myCourseIds.has(id),
+            );
+
+            // Bỏ gán: Course của user này đang gán vào ĐÚNG Roadmap này nhưng
+            // không còn trong danh sách mới → set roadmapId = null.
+            const toUnassign = myCourses
+                .filter(
+                    (c) =>
+                        c.roadmapId &&
+                        c.roadmapId.equals(roadmap._id) &&
+                        !validRequestedIds.includes(c._id.toString()),
+                )
+                .map((c) => c._id);
+
+            if (toUnassign.length > 0) {
+                await Course.updateMany(
+                    { _id: { $in: toUnassign } },
+                    { roadmapId: null },
+                );
+            }
+            if (validRequestedIds.length > 0) {
+                await Course.updateMany(
+                    { _id: { $in: validRequestedIds }, createdBy: req.user.id },
+                    { roadmapId: roadmap._id },
+                );
+            }
+
+            const updatedCourses = await Course.find({
+                roadmapId: roadmap._id,
+            });
+            res.json({
+                courses: multipleMongooseToObject(updatedCourses),
+            });
         } catch (err) {
             next(err);
         }

@@ -1,0 +1,440 @@
+<meta name="csrf-token" content="{{csrfToken}}">
+
+<div class="mt-4">
+    <h2>Quản lý cấu trúc: {{course.name}}</h2>
+    <p class="text-muted">Kéo-thả để sắp xếp lại thứ tự. Thêm/sửa/xóa Module và Video ngay tại đây.</p>
+
+    <form id="add-module-form" class="mb-3 d-flex gap-2">
+        <input type="text" id="new-module-name" class="form-control" placeholder="Tên Module mới" required>
+        <button type="submit" class="btn btn-primary" id="btn-add-module">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            + Thêm Module
+        </button>
+    </form>
+
+    <div id="module-list">
+        {{#each modules}}
+        <div class="module-block card mb-3" data-module-id="{{this._id}}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="module-drag-handle" style="cursor: move;">☰</span>
+                    <span class="module-name">{{this.name}}</span>
+                    <input type="text" class="module-name-input form-control form-control-sm d-none" value="{{this.name}}">
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-edit-module">Sửa</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-module">Xóa</button>
+                </div>
+            </div>
+            <ul class="video-list list-group list-group-flush" data-module-id="{{this._id}}">
+                {{#each this.videos}}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-video-id="{{this._id}}">
+                    <div>
+                        <span class="video-drag-handle" style="cursor: move;">☰</span>
+                        <span class="video-title">{{this.title}}</span>
+                        <input type="text" class="video-title-input form-control form-control-sm d-none" value="{{this.title}}">
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-edit-video">Sửa</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video">Xóa</button>
+                    </div>
+                </li>
+                {{/each}}
+            </ul>
+            <div class="card-body">
+                <form class="add-video-form d-flex gap-2" data-module-id="{{this._id}}">
+                    <input type="text" class="form-control form-control-sm video-youtubeid" placeholder="YouTube Video ID" required>
+                    <input type="text" class="form-control form-control-sm video-title-new" placeholder="Tên video" required>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        + Video
+                    </button>
+                </form>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+
+    {{#if modules.length}}
+    {{else}}
+    <p class="text-muted" id="empty-message">Khóa học này chưa có Module nào.</p>
+    {{/if}}
+</div>
+
+<!-- Modal xác nhận xóa (dùng chung cho Module và Video) -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 1rem;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="deleteModalBody">
+                Bạn có chắc chắn muốn xóa?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-soft" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger btn-soft" id="btn-confirm-delete">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    Xóa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    <div id="appToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="appToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+    $(document).ready(function () {
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+        const courseId = '{{course._id}}';
+
+        // Escape HTML để tránh XSS khi chèn dữ liệu từ AJAX response vào DOM
+        // bằng string concatenation (không qua Handlebars nên không tự escape).
+        function escapeHtml(str) {
+            return $('<div>').text(str).html();
+        }
+
+        // Hiển thị toast (thay thế alert())
+        function showToast(message, type) {
+            const $toast = $('#appToast');
+            $toast.removeClass('text-bg-success text-bg-danger text-bg-warning');
+            if (type === 'danger') {
+                $toast.addClass('text-bg-danger');
+            } else if (type === 'warning') {
+                $toast.addClass('text-bg-warning');
+            } else {
+                $toast.addClass('text-bg-success');
+            }
+            $('#appToastBody').text(message);
+            bootstrap.Toast.getOrCreateInstance($toast[0]).show();
+        }
+
+        function reportError(message) {
+            showToast(message, 'danger');
+        }
+
+        // Loading state: disable nút + hiện spinner
+        function setLoading($btn, loading) {
+            if (loading) {
+                $btn.prop('disabled', true);
+                $btn.find('.spinner-border').removeClass('d-none');
+            } else {
+                $btn.prop('disabled', false);
+                $btn.find('.spinner-border').addClass('d-none');
+            }
+        }
+
+        function buildVideoLiHtml(video) {
+            const title = escapeHtml(video.title);
+            return (
+                '<li class="list-group-item d-flex justify-content-between align-items-center" data-video-id="' + video._id + '">' +
+                '<div>' +
+                '<span class="video-drag-handle" style="cursor: move;">☰</span>' +
+                '<span class="video-title">' + title + '</span>' +
+                '<input type="text" class="video-title-input form-control form-control-sm d-none" value="' + title + '">' +
+                '</div>' +
+                '<div>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary btn-edit-video">Sửa</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-danger btn-delete-video">Xóa</button>' +
+                '</div>' +
+                '</li>'
+            );
+        }
+
+        function buildModuleBlockHtml(module) {
+            const name = escapeHtml(module.name);
+            return (
+                '<div class="module-block card mb-3" data-module-id="' + module._id + '">' +
+                '<div class="card-header d-flex justify-content-between align-items-center">' +
+                '<div>' +
+                '<span class="module-drag-handle" style="cursor: move;">☰</span>' +
+                '<span class="module-name">' + name + '</span>' +
+                '<input type="text" class="module-name-input form-control form-control-sm d-none" value="' + name + '">' +
+                '</div>' +
+                '<div>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary btn-edit-module">Sửa</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-danger btn-delete-module">Xóa</button>' +
+                '</div>' +
+                '</div>' +
+                '<ul class="video-list list-group list-group-flush" data-module-id="' + module._id + '"></ul>' +
+                '<div class="card-body">' +
+                '<form class="add-video-form d-flex gap-2" data-module-id="' + module._id + '">' +
+                '<input type="text" class="form-control form-control-sm video-youtubeid" placeholder="YouTube Video ID" required>' +
+                '<input type="text" class="form-control form-control-sm video-title-new" placeholder="Tên video" required>' +
+                '<button type="submit" class="btn btn-sm btn-primary">' +
+                '<span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>' +
+                '+ Video' +
+                '</button>' +
+                '</form>' +
+                '</div>' +
+                '</div>'
+            );
+        }
+
+        function initVideoSortable(ulEl) {
+            const moduleId = $(ulEl).data('module-id');
+            new Sortable(ulEl, {
+                handle: '.video-drag-handle',
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                onEnd: function () {
+                    const orderedIds = $(this.el)
+                        .find('> li')
+                        .map(function () { return $(this).data('video-id'); })
+                        .get();
+                    $.ajax({
+                        url: '/modules/' + moduleId + '/videos/reorder',
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        headers: { 'x-csrf-token': csrfToken },
+                        data: JSON.stringify({ orderedIds }),
+                    }).done(function () {
+                        showToast('Đã lưu thứ tự Video', 'success');
+                    }).fail(function () {
+                        reportError('Lỗi khi lưu thứ tự Video — tải lại trang để đồng bộ.');
+                        location.reload();
+                    });
+                },
+            });
+        }
+
+        // Khởi tạo Sortable cho Module (danh sách #module-list)
+        new Sortable(document.getElementById('module-list'), {
+            handle: '.module-drag-handle',
+            animation: 200,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            onEnd: function () {
+                const orderedIds = $('#module-list > .module-block')
+                    .map(function () { return $(this).data('module-id'); })
+                    .get();
+                $.ajax({
+                    url: '/courses/' + courseId + '/modules/reorder',
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    headers: { 'x-csrf-token': csrfToken },
+                    data: JSON.stringify({ orderedIds }),
+                }).done(function () {
+                    showToast('Đã lưu thứ tự Module', 'success');
+                }).fail(function () {
+                    reportError('Lỗi khi lưu thứ tự Module — tải lại trang để đồng bộ.');
+                    location.reload();
+                });
+            },
+        });
+
+        // Khởi tạo Sortable cho Video của TỪNG Module có sẵn lúc render trang
+        $('.video-list').each(function () {
+            initVideoSortable(this);
+        });
+
+        // --- Thêm Module ---
+        $('#add-module-form').on('submit', function (e) {
+            e.preventDefault();
+            const name = $('#new-module-name').val().trim();
+            if (!name) return;
+            const $btn = $('#btn-add-module');
+            setLoading($btn, true);
+            $.ajax({
+                url: '/courses/' + courseId + '/modules',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'x-csrf-token': csrfToken },
+                data: JSON.stringify({ name }),
+            }).done(function (res) {
+                $('#empty-message').remove();
+                const $block = $(buildModuleBlockHtml(res.module));
+                $('#module-list').append($block);
+                initVideoSortable($block.find('.video-list')[0]);
+                $('#new-module-name').val('');
+                showToast('Đã thêm Module', 'success');
+            }).fail(function () {
+                reportError('Lỗi khi thêm Module');
+            }).always(function () {
+                setLoading($btn, false);
+            });
+        });
+
+        // --- Sửa tên Module (bấm "Sửa" -> hiện input -> Enter hoặc blur để lưu) ---
+        $(document).on('click', '.btn-edit-module', function () {
+            const $header = $(this).closest('.card-header');
+            $header.find('.module-name').addClass('d-none');
+            $header.find('.module-name-input').removeClass('d-none').trigger('focus');
+        });
+
+        $(document).on('blur keypress', '.module-name-input', function (e) {
+            if (e.type === 'keypress' && e.which !== 13) return;
+            const $input = $(this);
+            const moduleId = $input.closest('.module-block').data('module-id');
+            const newName = $input.val().trim();
+
+            if (!newName) {
+                $input.addClass('d-none');
+                $input.closest('.card-header').find('.module-name').removeClass('d-none');
+                return;
+            }
+
+            // Nếu giá trị hiện tại giống hệt lần lưu thành công gần nhất, bỏ qua —
+            // tránh gửi trùng khi blur xảy ra (đồng bộ hoặc trễ) sau khi keypress Enter
+            // đã lưu xong và đổi val() của input sang giá trị đã lưu.
+            if (newName === $input.data('last-saved-name')) {
+                $input.addClass('d-none');
+                $input.closest('.card-header').find('.module-name').removeClass('d-none');
+                return;
+            }
+
+            $input.prop('disabled', true);
+            $.ajax({
+                url: '/modules/' + moduleId,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: { 'x-csrf-token': csrfToken },
+                data: JSON.stringify({ name: newName }),
+            }).done(function (res) {
+                $input.data('last-saved-name', res.module.name);
+                const $header = $input.closest('.card-header');
+                $header.find('.module-name').text(res.module.name).removeClass('d-none');
+                $input.val(res.module.name).addClass('d-none');
+                showToast('Đã sửa Module', 'success');
+            }).fail(function () {
+                reportError('Lỗi khi sửa Module');
+            }).always(function () {
+                $input.prop('disabled', false);
+            });
+        });
+
+        // --- Xóa Module / Video: mở modal xác nhận ---
+        let deleteTarget = null; // { type: 'module'|'video', id, $el }
+
+        $(document).on('click', '.btn-delete-module', function () {
+            const $block = $(this).closest('.module-block');
+            const moduleId = $block.data('module-id');
+            const name = $block.find('.module-name').text();
+            deleteTarget = { type: 'module', id: moduleId, $el: $block };
+            $('#deleteModalBody').text('Xóa Module "' + name + '"? Toàn bộ Video bên trong cũng sẽ bị xóa vĩnh viễn.');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+        });
+
+        $(document).on('click', '.btn-delete-video', function () {
+            const $li = $(this).closest('li');
+            const videoId = $li.data('video-id');
+            const title = $li.find('.video-title').text();
+            deleteTarget = { type: 'video', id: videoId, $el: $li };
+            $('#deleteModalBody').text('Xóa Video "' + title + '"?');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+        });
+
+        // Xác nhận xóa trong modal
+        $('#btn-confirm-delete').on('click', function () {
+            if (!deleteTarget) return;
+            const $btn = $(this);
+            setLoading($btn, true);
+            const url = deleteTarget.type === 'module'
+                ? '/modules/' + deleteTarget.id
+                : '/videos/' + deleteTarget.id;
+            $.ajax({
+                url: url,
+                method: 'DELETE',
+                headers: { 'x-csrf-token': csrfToken },
+            }).done(function () {
+                deleteTarget.$el.remove();
+                if (deleteTarget.type === 'module' && $('#module-list > .module-block').length === 0) {
+                    $('#module-list').after('<p class="text-muted" id="empty-message">Khóa học này chưa có Module nào.</p>');
+                }
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                showToast(deleteTarget.type === 'module' ? 'Đã xóa Module' : 'Đã xóa Video', 'success');
+                deleteTarget = null;
+            }).fail(function () {
+                reportError('Lỗi khi xóa ' + (deleteTarget.type === 'module' ? 'Module' : 'Video'));
+            }).always(function () {
+                setLoading($btn, false);
+            });
+        });
+
+        // --- Thêm Video ---
+        $(document).on('submit', '.add-video-form', function (e) {
+            e.preventDefault();
+            const $form = $(this);
+            const moduleId = $form.data('module-id');
+            const youtubeId = $form.find('.video-youtubeid').val().trim();
+            const title = $form.find('.video-title-new').val().trim();
+            if (!youtubeId || !title) return;
+            const $btn = $form.find('button[type="submit"]');
+            setLoading($btn, true);
+            $.ajax({
+                url: '/modules/' + moduleId + '/videos',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'x-csrf-token': csrfToken },
+                data: JSON.stringify({ youtubeId, title }),
+            }).done(function (res) {
+                $form.closest('.module-block').find('.video-list').append(buildVideoLiHtml(res.video));
+                $form[0].reset();
+                showToast('Đã thêm Video', 'success');
+            }).fail(function () {
+                reportError('Lỗi khi thêm Video');
+            }).always(function () {
+                setLoading($btn, false);
+            });
+        });
+
+        // --- Sửa tên Video ---
+        $(document).on('click', '.btn-edit-video', function () {
+            const $li = $(this).closest('li');
+            $li.find('.video-title').addClass('d-none');
+            $li.find('.video-title-input').removeClass('d-none').trigger('focus');
+        });
+
+        $(document).on('blur keypress', '.video-title-input', function (e) {
+            if (e.type === 'keypress' && e.which !== 13) return;
+            const $input = $(this);
+            const videoId = $input.closest('li').data('video-id');
+            const newTitle = $input.val().trim();
+
+            if (!newTitle) {
+                $input.addClass('d-none');
+                $input.closest('li').find('.video-title').removeClass('d-none');
+                return;
+            }
+
+            if (newTitle === $input.data('last-saved-title')) {
+                $input.addClass('d-none');
+                $input.closest('li').find('.video-title').removeClass('d-none');
+                return;
+            }
+
+            $input.prop('disabled', true);
+            $.ajax({
+                url: '/videos/' + videoId,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: { 'x-csrf-token': csrfToken },
+                data: JSON.stringify({ title: newTitle }),
+            }).done(function (res) {
+                $input.data('last-saved-title', res.video.title);
+                const $li = $input.closest('li');
+                $li.find('.video-title').text(res.video.title).removeClass('d-none');
+                $input.val(res.video.title).addClass('d-none');
+                showToast('Đã sửa Video', 'success');
+            }).fail(function () {
+                reportError('Lỗi khi sửa Video');
+            }).always(function () {
+                $input.prop('disabled', false);
+            });
+        });
+    });
+</script>

@@ -1,4 +1,7 @@
 const Course = require('../models/Course');
+const Module = require('../models/Module');
+const Video = require('../models/Video');
+const PlaylistCache = require('../models/PlaylistCache');
 const { mongooseToObject } = require('../../utils/mongoose');
 const {
     extractPlaylistId,
@@ -12,19 +15,56 @@ const {
 
 class CourseController {
     //[GET] /courses/:slug
-    show(req, res, next) {
-        Course.findOne({ slug: req.params.slug })
-            .then((course) =>
-                res.render('courses/show', {
-                    course: mongooseToObject(course),
+    async show(req, res, next) {
+        try {
+            const course = await Course.findOne({ slug: req.params.slug });
+            if (!course) {
+                return res.status(404).render('errors/404', {
+                    layout: false,
+                    error: 'Không tìm thấy khóa học',
+                });
+            }
+
+            // Build cây Module → Video (nếu có). Dùng .lean() để trả thẳng plain
+            // object, tránh Mongoose Document lẫn vào Handlebars.
+            const modulesRaw = await Module.find({ courseId: course._id })
+                .sort({ order: 1 })
+                .lean();
+
+            const modules = await Promise.all(
+                modulesRaw.map(async (module) => {
+                    const videos = await Video.find({ moduleId: module._id })
+                        .sort({ order: 1 })
+                        .lean();
+                    return { ...module, videos };
                 }),
-            )
-            .catch(next);
+            );
+
+            // Xác định video hiển thị đầu tiên: ưu tiên Video đầu của Module đầu
+            // (nếu có cây), fallback về course.videoid cũ (course chưa có Module/Video).
+            let initialVideoId = course.videoid;
+            if (modules.length > 0 && modules[0].videos.length > 0) {
+                initialVideoId = modules[0].videos[0].youtubeId;
+            }
+
+            res.render('courses/show', {
+                title: course.name,
+                course: mongooseToObject(course),
+                modules, // đã là plain object (từ .lean()), không cần mongooseToObject
+                hasTree: modules.length > 0,
+                initialVideoId,
+            });
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[GET] /courses/create
     create(req, res, next) {
-        res.render('courses/create');
+        res.render('courses/create', {
+            title: 'Tạo khóa học',
+            isAdmin: req.user.role === 'admin',
+        });
     }
 
     //[POST] /courses/store
@@ -44,7 +84,13 @@ class CourseController {
 
         course
             .save()
-            .then(() => res.redirect('/courses/create'))
+            .then(() =>
+                res.redirect(
+                    (req.user.role === 'admin'
+                        ? '/me/courses/stored'
+                        : '/me/courses') + '?created=1',
+                ),
+            )
             .catch((err) => {
                 if (err.code === 11000) {
                     return res
@@ -60,10 +106,40 @@ class CourseController {
         Course.findById(req.params.id)
             .then((course) =>
                 res.render('courses/edit', {
+                    title: 'Chỉnh sửa khóa học',
                     course: mongooseToObject(course),
                 }),
             )
             .catch(next);
+    }
+
+    //[GET] /courses/:id/manage
+    // requireAuth + checkOwnership(Course) — req.resource là Course, chỉ owner/admin vào được
+    async manage(req, res, next) {
+        try {
+            const course = req.resource;
+
+            const modulesRaw = await Module.find({ courseId: course._id })
+                .sort({ order: 1 })
+                .lean();
+
+            const modules = await Promise.all(
+                modulesRaw.map(async (module) => {
+                    const videos = await Video.find({ moduleId: module._id })
+                        .sort({ order: 1 })
+                        .lean();
+                    return { ...module, videos };
+                }),
+            );
+
+            res.render('courses/manage', {
+                title: 'Quản lý cấu trúc',
+                course: mongooseToObject(course),
+                modules,
+            });
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[PUT] /courses/:id
@@ -79,7 +155,13 @@ class CourseController {
         Course.updateOne({ _id: req.params.id }, formData, {
             runValidators: true,
         })
-            .then(() => res.redirect('/me/courses/stored'))
+            .then(() =>
+                res.redirect(
+                    (req.user.role === 'admin'
+                        ? '/me/courses/stored'
+                        : '/me/courses') + '?updated=1',
+                ),
+            )
             .catch((err) => {
                 if (err.code === 11000) {
                     return res
@@ -93,22 +175,50 @@ class CourseController {
     //[DELETE] /courses/:id
     destroy(req, res, next) {
         Course.delete({ _id: req.params.id })
-            .then(() => res.redirect('/me/courses/stored'))
+            .then(() =>
+                res.redirect(
+                    req.user.role === 'admin'
+                        ? '/me/courses/stored'
+                        : '/me/courses',
+                ),
+            )
             .catch(next);
     }
 
     //[PATCH] /courses/:id/restore
     restore(req, res, next) {
         Course.restore({ _id: req.params.id })
-            .then(() => res.redirect('/me/courses/trash'))
+            .then(() => res.redirect('/me/courses/trash?restored=1'))
             .catch(next);
     }
 
     //[DELETE] /courses/:id/force
-    forceDestroy(req, res, next) {
-        Course.deleteOne({ _id: req.params.id })
-            .then(() => res.redirect('/me/courses/trash'))
-            .catch(next);
+    // Cascade xóa cứng: Course → Module → Video.
+    // Thứ tự: Video (ref Module) phải xóa trước, rồi Module, cuối cùng Course.
+    // Nếu bất kỳ bước nào lỗi → next(err), KHÔNG để xóa dở dang.
+    async forceDestroy(req, res, next) {
+        try {
+            // 1. Tìm tất cả Module thuộc Course
+            const modules = await Module.find({
+                courseId: req.params.id,
+            }).select('_id');
+            const moduleIds = modules.map((m) => m._id);
+
+            // 2. Xóa cứng tất cả Video thuộc các Module đó (nếu có)
+            if (moduleIds.length > 0) {
+                await Video.deleteMany({ moduleId: { $in: moduleIds } });
+            }
+
+            // 3. Xóa cứng tất cả Module đó (nếu có)
+            await Module.deleteMany({ courseId: req.params.id });
+
+            // 4. Cuối cùng mới xóa cứng Course
+            await Course.deleteOne({ _id: req.params.id });
+
+            res.redirect('/me/courses/trash?deleted=1');
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[POST] /courses/playlist/items
@@ -127,13 +237,44 @@ class CourseController {
                     .json({ error: 'Playlist ID không hợp lệ' });
             }
 
+            // Kiểm tra cache trước — tránh gọi YouTube API thừa (tốn quota)
+            // Check thêm điều kiện thời gian tường minh vì TTL index của MongoDB
+            // có thể trễ tới ~60s so với mốc hết hạn thực tế.
+            const cacheExpiry = new Date(Date.now() - 5 * 60 * 1000);
+            const cached = await PlaylistCache.findOne({
+                playlistId,
+                fetchedAt: { $gt: cacheExpiry },
+            });
+            if (cached) {
+                return res.json({ videos: cached.videos, fromCache: true });
+            }
+
             const { videos } = await fetchPlaylistVideos(
                 playlistId,
                 process.env.YOUTUBE_API_KEY,
             );
+
+            // Lưu/cập nhật cache (upsert). Cache chỉ là tối ưu phụ — nếu ghi lỗi
+            // (ví dụ race condition duplicate key khi 2 request cùng playlistId
+            // gần như đồng thời), KHÔNG được làm hỏng response chính, vì video
+            // đã fetch thành công từ YouTube rồi.
+            try {
+                await PlaylistCache.findOneAndUpdate(
+                    { playlistId },
+                    { playlistId, videos, fetchedAt: new Date() },
+                    { upsert: true },
+                );
+            } catch (cacheErr) {
+                console.error(
+                    'Lỗi ghi playlist cache (bỏ qua, không ảnh hưởng response):',
+                    cacheErr.message,
+                );
+            }
+
             res.json({ videos });
         } catch (err) {
-            res.status(400).json({ error: err.message });
+            const status = err.status || 400;
+            res.status(status).json({ error: err.message });
         }
     }
 
@@ -216,6 +357,7 @@ class CourseController {
                         name: item.title,
                         videoid: item.videoid,
                         image: `https://img.youtube.com/vi/${item.videoid}/sddefault.jpg`,
+                        createdBy: req.user.id,
                     }),
                 ),
             );

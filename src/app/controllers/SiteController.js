@@ -7,6 +7,7 @@ class SiteController {
         Course.find({})
             .then((courses) => {
                 res.render('home', {
+                    title: 'Trang chủ',
                     courses: multipleMongooseToObject(courses),
                 });
             })
@@ -15,7 +16,9 @@ class SiteController {
 
     //[GET] /search
     search(req, res) {
-        res.render('search');
+        res.render('search', {
+            title: 'Tìm kiếm',
+        });
     }
 }
 

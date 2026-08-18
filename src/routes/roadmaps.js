@@ -6,25 +6,41 @@ const { requireAuth } = require('../app/middlewares/auth');
 const { checkOwnership } = require('../app/middlewares/checkOwnership');
 const Roadmap = require('../app/models/Roadmap');
 
-// Route công khai — không cần đăng nhập (attachUser chạy global để biết req.user nếu có)
-router.get('/', RoadmapController.index);
-router.get('/:slug', RoadmapController.show);
+router.get('/create', requireAuth, RoadmapController.create);
 
-// Route cần đăng nhập — bất kỳ user nào (không cần role admin)
 router.post('/', requireAuth, RoadmapController.store);
 
-// Route cần đăng nhập + kiểm tra quyền sở hữu
+router.get(
+    '/:id/edit',
+    requireAuth,
+    checkOwnership(Roadmap),
+    RoadmapController.edit,
+);
+
+router.put(
+    '/:id/courses',
+    requireAuth,
+    checkOwnership(Roadmap),
+    RoadmapController.assignCourses,
+);
+
 router.put(
     '/:id',
     requireAuth,
     checkOwnership(Roadmap),
     RoadmapController.update,
 );
+
 router.delete(
     '/:id',
     requireAuth,
     checkOwnership(Roadmap),
     RoadmapController.destroy,
 );
+
+router.get('/', RoadmapController.index);
+
+// Route công khai — PHẢI đặt CUỐI CÙNG (catch-all theo slug)
+router.get('/:slug', RoadmapController.show);
 
 module.exports = router;

@@ -127,50 +127,62 @@ class VideoController {
         }
     }
 
-    //[PATCH] /videos/:id/reorder
-    // requireAuth + checkCourseOwnership — nhận body { direction: 'up'|'down' }
-    // Hoán đổi order với video liền kề CÙNG moduleId
-    async reorder(req, res, next) {
+    //[PUT] /modules/:moduleId/videos/reorder
+    async reorderBulk(req, res, next) {
         try {
-            const video = req.resource;
-            const { direction } = req.body;
+            const { orderedIds } = req.body;
+            if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+                return res
+                    .status(400)
+                    .json({ error: 'orderedIds phải là mảng không rỗng' });
+            }
 
-            if (direction !== 'up' && direction !== 'down') {
+            const module = await Module.findById(req.params.moduleId);
+            if (!module) {
+                return res.status(404).json({ error: 'Không tìm thấy module' });
+            }
+            const course = await Course.findById(module.courseId);
+            if (!course) {
+                return res
+                    .status(404)
+                    .json({ error: 'Không tìm thấy khóa học liên kết' });
+            }
+
+            const isOwner =
+                course.createdBy &&
+                req.user &&
+                course.createdBy.equals(req.user.id);
+            const isAdmin = req.user && req.user.role === 'admin';
+            if (!isOwner && !isAdmin) {
+                return res
+                    .status(403)
+                    .json({ error: 'Không có quyền truy cập' });
+            }
+
+            const actualVideos = await Video.find({
+                moduleId: module._id,
+            }).select('_id');
+            const actualIds = actualVideos.map((v) => v._id.toString()).sort();
+            const requestedIds = [...orderedIds].sort();
+
+            if (
+                actualIds.length !== requestedIds.length ||
+                !actualIds.every((id, i) => id === requestedIds[i])
+            ) {
                 return res.status(400).json({
-                    error: "direction phải là 'up' hoặc 'down'",
+                    error: 'Danh sách ID không khớp với Video thực tế của module này',
                 });
             }
 
-            // Tìm video liền kề cùng moduleId
-            let neighbor;
-            if (direction === 'up') {
-                neighbor = await Video.findOne({
-                    moduleId: video.moduleId,
-                    order: { $lt: video.order },
-                }).sort({ order: -1 });
-            } else {
-                neighbor = await Video.findOne({
-                    moduleId: video.moduleId,
-                    order: { $gt: video.order },
-                }).sort({ order: 1 });
-            }
+            const bulkOps = orderedIds.map((id, index) => ({
+                updateOne: {
+                    filter: { _id: id, moduleId: module._id },
+                    update: { order: index },
+                },
+            }));
+            await Video.bulkWrite(bulkOps);
 
-            if (!neighbor) {
-                return res
-                    .status(400)
-                    .json({ error: 'Không thể di chuyển — đã ở vị trí biên' });
-            }
-
-            // Hoán đổi order
-            const temp = video.order;
-            video.order = neighbor.order;
-            neighbor.order = temp;
-
-            await video.save();
-            await neighbor.save();
-
-            // Trả về danh sách videos của module để client render lại
-            const videos = await Video.find({ moduleId: video.moduleId }).sort({
+            const videos = await Video.find({ moduleId: module._id }).sort({
                 order: 1,
             });
             res.json({ videos });

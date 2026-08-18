@@ -26,11 +26,12 @@ router.delete(
     checkModuleOwnership,
     ModuleController.destroy,
 );
-router.patch(
-    '/:id/reorder',
+
+// Bulk reorder Video trong Module — cần đăng nhập + kiểm tra quyền sở hữu (inline trong controller)
+router.put(
+    '/:moduleId/videos/reorder',
     requireAuth,
-    checkModuleOwnership,
-    ModuleController.reorder,
+    VideoController.reorderBulk,
 );
 
 module.exports = router;

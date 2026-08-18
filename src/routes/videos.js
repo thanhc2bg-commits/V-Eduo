@@ -26,11 +26,5 @@ router.delete(
     checkVideoOwnership,
     VideoController.destroy,
 );
-router.patch(
-    '/:id/reorder',
-    requireAuth,
-    checkVideoOwnership,
-    VideoController.reorder,
-);
 
 module.exports = router;

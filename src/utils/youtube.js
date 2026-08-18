@@ -34,7 +34,9 @@ function extractPlaylistId(input) {
  */
 async function fetchPlaylistVideos(playlistId, apiKey) {
     if (!apiKey) {
-        throw new Error('Chưa cấu hình YOUTUBE_API_KEY trong file .env');
+        const err = new Error('Chưa cấu hình YOUTUBE_API_KEY trong file .env');
+        err.status = 401;
+        throw err;
     }
 
     const videos = [];
@@ -51,10 +53,31 @@ async function fetchPlaylistVideos(playlistId, apiKey) {
         if (pageToken) params.set('pageToken', pageToken);
 
         const url = `${YOUTUBE_API_BASE}/playlistItems?${params.toString()}`;
-        const res = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        let res;
+        try {
+            res = await fetch(url, { signal: controller.signal });
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                const timeoutErr = new Error(
+                    'Hết thời gian chờ phản hồi từ YouTube, vui lòng thử lại',
+                );
+                timeoutErr.status = 504;
+                throw timeoutErr;
+            }
+            const netErr = new Error(
+                'Không thể kết nối tới YouTube, kiểm tra lại kết nối mạng',
+            );
+            netErr.status = 502;
+            throw netErr;
+        } finally {
+            clearTimeout(timeoutId);
+        }
 
         if (!res.ok) {
             let message = 'Có lỗi xảy ra khi lấy danh sách playlist';
+            let status = 502;
             try {
                 const data = await res.json();
                 const reason =
@@ -62,20 +85,33 @@ async function fetchPlaylistVideos(playlistId, apiKey) {
                 if (res.status === 404) {
                     message =
                         'Không tìm thấy playlist (có thể riêng tư hoặc đã bị xóa)';
+                    status = 404;
                 } else if (res.status === 403) {
                     if (reason && reason.reason === 'quotaExceeded') {
                         message = 'Đã hết quota YouTube API, thử lại sau';
+                        status = 429;
                     } else {
                         message =
                             'API key không hợp lệ, kiểm tra lại YOUTUBE_API_KEY';
+                        status = 401;
                     }
                 } else if (res.status === 400) {
-                    message = 'Playlist ID không hợp lệ';
+                    const rawMessage = (data.error && data.error.message) || '';
+                    if (/api key/i.test(rawMessage)) {
+                        message =
+                            'API key không hợp lệ, kiểm tra lại YOUTUBE_API_KEY';
+                        status = 401;
+                    } else {
+                        message = 'Playlist ID không hợp lệ';
+                        status = 400;
+                    }
                 }
             } catch (e) {
                 // giữ message mặc định nếu không parse được JSON
             }
-            throw new Error(message);
+            const err = new Error(message);
+            err.status = status;
+            throw err;
         }
 
         const data = await res.json();

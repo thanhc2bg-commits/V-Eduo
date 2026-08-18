@@ -19,7 +19,7 @@
                     <th scope="col">Tên khóa học</th>
                     <th scope="col">Trình độ</th>
                     <th scope="col">Thời gian</th>
-                    <th scope="col" colspan="2">Thao tác</th>
+                    <th scope="col">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,27 +34,27 @@
                         <span class="badge-level">Chưa cập nhật</span>
                         {{/if}}
                     </td>
-                    <td class="course-date">{{this.createdAt}}</td>
+                    <td class="course-date">{{formatDate this.createdAt}}</td>
                     <td>
-                        <a href="#" class="btn btn-soft btn-restore-soft btn-sm btn-restore" data-id="{{this._id}}">
+                        <div class="d-flex gap-1 flex-wrap">
+                        <button type="button" class="btn btn-soft btn-restore-soft btn-sm btn-restore" data-id="{{this._id}}">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                             </svg>
                             Khôi phục
-                        </a>
-                    </td>
-                    <td>
-                        <a href="#" class="btn btn-soft btn-delete btn-sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}">
+                        </button>
+                        <button type="button" class="btn btn-soft btn-delete btn-sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-course-name="{{this.name}}">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                             </svg>
                             Xóa
-                        </a>
+                        </button>
+                        </div>
                     </td>
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="6">
+                    <td colspan="5">
                         <div class="empty-state text-center">
                             <div class="empty-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
@@ -62,7 +62,8 @@
                                 </svg>
                             </div>
                             <div class="empty-title">Thùng rác trống</div>
-                            <div class="empty-subtitle">Không có khóa học nào đã xóa.<a style="margin-left: 0.5rem;" href="/me/courses/stored">Quay lại</a></div>
+                            <div class="empty-subtitle">Không có khóa học nào đã xóa.</div>
+                            <a href="/me/courses/stored" class="btn btn-outline-danger btn-soft btn-sm">Quay lại</a>
                         </div>
                     </td>
                 </tr>
@@ -72,62 +73,49 @@
     </div>
 </div>
 
-<!-- Modal xác nhận xóa -->
-<div class="modal fade" id="delete-course-modal" tabindex="-1" aria-labelledby="delete-course-modal-label" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" style="border-radius: 1rem;">
-            <div class="modal-header">
-                <h5 class="modal-title" id="delete-course-modal-label">Xóa khóa học</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Bạn có chắc chắn muốn xóa khóa học này không?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-soft" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-danger btn-soft" id="btn-delete-course">Xóa</button>
-            </div>
-        </div>
-    </div>
-</div>
+{{> delete-modal}}
 
-<!-- Hidden form để submit DELETE -->
-<form id="delete-course-form" method="POST">
-    <input type="hidden" name="_csrf" value="{{csrfToken}}">
-</form>
+<!-- Hidden form để submit PATCH (khôi phục) -->
 <form id="restore-course-form" method="POST">
     <input type="hidden" name="_csrf" value="{{csrfToken}}">
 </form>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var courseId;
-        var deleteForm = document.getElementById('delete-course-form');
-        var restoreForm = document.getElementById('restore-course-form');
-        var btnDeleteCourse = document.getElementById('btn-delete-course');
-        var restoreBtn = document.querySelectorAll('.btn-restore');
-
-        // When dialog confirm clicked
-        $('#delete-course-modal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            courseId = button.data('id');
-        });
-
-        // When delete course btn clicked (permanent delete)
-        btnDeleteCourse.onclick = function () {
-            deleteForm.action = '/courses/' + courseId + '/force?_method=DELETE';
-            deleteForm.submit();
+    $(document).ready(function() {
+        // Hiển thị flash message từ query param (?restored=1 / ?deleted=1)
+        const params = new URLSearchParams(window.location.search);
+        let flashMsg = null;
+        if (params.get('restored')) flashMsg = 'Khôi phục khóa học thành công!';
+        else if (params.get('deleted')) flashMsg = 'Đã xóa vĩnh viễn khóa học!';
+        if (flashMsg) {
+            $('#flashToastBody').text(flashMsg);
+            bootstrap.Toast.getOrCreateInstance(document.getElementById('flashToast')).show();
+            // Xóa query param khỏi URL để không hiện lại khi refresh
+            history.replaceState(null, '', window.location.pathname);
         }
 
-        // Restore btn clicked
-        restoreBtn.forEach(function(btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                var courseId = this.getAttribute('data-id');
-                restoreForm.action = '/courses/' + courseId + '/restore?_method=PATCH';
-                restoreForm.submit();
-            });
+        var courseId;
+
+        // Khi modal hiển thị, lấy id + tên khóa học từ nút Xóa được click
+        $('#delete-course-modal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            courseId = button.data('id');
+            var courseName = button.data('course-name');
+            $('#delete-course-name').text(courseName || '');
         });
 
+        // Khi click nút Xóa trong modal, submit form DELETE (xóa vĩnh viễn)
+        $('#btn-delete-course').on('click', function() {
+            $('#delete-course-form').attr('action', '/courses/' + courseId + '/force?_method=DELETE');
+            $('#delete-course-form').submit();
+        });
+
+        // Khi click nút Khôi phục, submit form PATCH
+        $(document).on('click', '.btn-restore', function(e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $('#restore-course-form').attr('action', '/courses/' + id + '/restore?_method=PATCH');
+            $('#restore-course-form').submit();
+        });
     });
 </script>
