@@ -23,6 +23,29 @@ const Roadmap = new Schema(
             required: true,
         },
         isPublic: { type: Boolean, default: true },
+        visibility: {
+            type: String,
+            enum: ['public', 'private', 'draft'],
+            default: 'public',
+            index: true,
+        },
+        category: {
+            type: String,
+            maxLength: 120,
+            default: '',
+            trim: true,
+        },
+        difficulty: {
+            type: String,
+            maxLength: 120,
+            default: '',
+            trim: true,
+        },
+        coverImage: {
+            type: String,
+            default: '',
+            trim: true,
+        },
     },
     {
         timestamps: true,
@@ -85,5 +108,7 @@ Roadmap.plugin(mongooseDelete, {
     deletedAt: true,
     overrideMethods: 'all',
 });
+
+Roadmap.index({ createdBy: 1, visibility: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Roadmap', Roadmap);

@@ -106,6 +106,15 @@ app.engine(
         helpers: {
             sum: (a, b) => a + b,
             eq: (a, b) => a === b,
+            // Lặp n lần — dùng để render số sao (vd: {{#times 4}}★{{/times}})
+            times: (n, options) => {
+                const count = Number(n) || 0;
+                let out = '';
+                for (let i = 0; i < count; i++) {
+                    out += options.fn(this);
+                }
+                return out;
+            },
             // Format Date thành DD/MM/YYYY. Trả về '—' nếu null/undefined/invalid.
             formatDate: (date) => {
                 if (!date) return '—';

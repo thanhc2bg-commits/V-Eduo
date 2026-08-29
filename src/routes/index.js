@@ -6,6 +6,8 @@ const authRouter = require('./auth');
 const roadmapRouter = require('./roadmaps');
 const moduleRouter = require('./modules');
 const videoRouter = require('./videos');
+const apiRouter = require('./api');
+const certificateRouter = require('./certificates');
 function route(app) {
     app.use('/news', newsRouter);
     app.use('/courses', courseRouter);
@@ -14,6 +16,8 @@ function route(app) {
     app.use('/roadmaps', roadmapRouter);
     app.use('/modules', moduleRouter);
     app.use('/videos', videoRouter);
+    app.use('/api', apiRouter);
+    app.use('/certificates', certificateRouter);
     app.use('/', siteRouter);
 
     // Route catch-all 404 — phải đặt SAU CÙNG, sau tất cả các route khác

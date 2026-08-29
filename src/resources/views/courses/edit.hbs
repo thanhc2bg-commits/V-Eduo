@@ -11,12 +11,21 @@
             <input type="text" class="form-control" id="description" name="description" value="{{course.description}}">
         </div>
         <div class="form-group">
-            <label for="videoid">ID Video</label>
-            <input type="text" class="form-control" id="videoid" name="videoid" value="{{course.videoid}}">
+            <label for="youtubeId">ID hoặc Link Video YouTube</label>
+            <!-- Course không còn lưu youtubeId trực tiếp — video quản lý qua Module/Video.
+                 Trường này chỉ dùng để cập nhật thumbnail image khi có youtubeId mới. -->
+            <input type="text" class="form-control" id="youtubeId" name="youtubeId" value="">
         </div>
         <div class="form-group">
             <label for="level">Trình độ</label>
             <input type="text" class="form-control" id="level" name="level" value="{{course.level}}">
+        </div>
+        <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="certificate" name="certificate"
+                   {{#if course.certificate}}checked{{/if}}>
+            <label class="form-check-label" for="certificate">
+                Cấp chứng chỉ khi học viên hoàn thành 100% khóa học
+            </label>
         </div>
 
         <button type="submit" class="btn btn-primary">Lưu khóa học</button>

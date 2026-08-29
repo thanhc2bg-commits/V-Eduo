@@ -1,52 +1,550 @@
-<div class="mt-4">
-    <div class="row">
-        <div class="col-lg-9">
-            <div class="ratio ratio-16x9">
-                <iframe id="main-player"
-                    src="https://www.youtube.com/embed/{{initialVideoId}}"
-                    title="YouTube video player" frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<meta name="csrf-token" content="{{csrfToken}}">
+<script src="/js/escape-html.js"></script>
+
+<div class="cl-page">
+    <a href="/courses" class="cl-back">
+        <span class="cl-back__arrow">←</span> Khóa học
+    </a>
+
+    <div class="cl-layout">
+        <div class="cl-main">
+            <!-- Hero: title + actions -->
+            <header class="cl-hero">
+                <h1 class="cl-hero__title">{{course.name}}</h1>
+                <div class="cl-hero__actions">
+                    {{#if user}}
+                        {{#if isEnrolled}}
+                            <span class="cl-badge cl-badge--success">✓ Đã đăng ký</span>
+                        {{else}}
+                            <button type="button" class="cl-btn cl-btn--primary" id="btn-enroll"
+                                data-course-id="{{course._id}}">
+                                + Đăng ký khóa học
+                            </button>
+                        {{/if}}
+                        {{#if isOwner}}
+                            <a href="/courses/{{course._id}}/manage" class="cl-btn cl-btn--ghost">
+                                Quản lý nội dung
+                            </a>
+                            <a href="/courses/{{course._id}}/edit" class="cl-btn cl-btn--ghost">
+                                Sửa thông tin
+                            </a>
+                        {{/if}}
+                    {{else}}
+                        <a href="/auth/login" class="cl-btn cl-btn--primary">Đăng nhập để đăng ký</a>
+                    {{/if}}
+                </div>
+            </header>
+
+            <!-- Player -->
+            <div class="cl-player">
+                <div class="cl-player__frame">
+                    <iframe id="main-player"
+                        src="https://www.youtube.com/embed/{{initialVideoId}}"
+                        title="YouTube video player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
             </div>
-            <h2 class="mt-3">{{course.name}}</h2>
-            <p>{{course.description}}</p>
+
+            <!-- Progress (Phase 2) — chỉ hiển thị khi đã enroll -->
+            {{#if isEnrolled}}
+            <section class="cl-progress" aria-label="Tiến độ khóa học">
+                <div class="cl-progress__head">
+                    <span class="cl-progress__label">Tiến độ khóa học</span>
+                    <span class="cl-progress__pct" id="progress-label">{{progressPercent}}%</span>
+                </div>
+                <div class="cl-progress__track" role="progressbar" aria-valuenow="{{progressPercent}}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="cl-progress__bar" id="progress-bar" style="width: {{progressPercent}}%"></div>
+                </div>
+                {{#if (eq enrollmentStatus 'completed')}}
+                <p class="cl-progress__note cl-progress__note--success">🎉 Bạn đã hoàn thành khóa học này!</p>
+                {{/if}}
+                {{#if course.certificate}}
+                {{#unless (eq enrollmentStatus 'completed')}}
+                <p class="cl-progress__note">🏆 Hoàn thành 100% khóa học để nhận chứng chỉ.</p>
+                {{/unless}}
+                {{/if}}
+            </section>
+            {{/if}}
+
+            <!-- Nút đánh dấu hoàn thành video hiện tại (Phase 2) -->
+            {{#if isEnrolled}}
+            <div class="cl-complete">
+                <button type="button" class="cl-btn cl-btn--outline-success" id="btn-complete-video" aria-pressed="false">
+                    ✔ Đánh dấu đã hoàn thành
+                </button>
+                <button type="button" class="cl-btn cl-btn--muted d-none" id="btn-uncomplete-video" aria-pressed="true">
+                    Bỏ đánh dấu hoàn thành
+                </button>
+                <span class="cl-complete__hint d-none" id="complete-hint">Video này chưa có Module/Video tree để đánh dấu.</span>
+            </div>
+            {{/if}}
+
+            <!-- Mô tả khóa học -->
+            <section class="cl-section">
+                <h2 class="cl-section__title">Giới thiệu khóa học</h2>
+                <p class="cl-section__body">{{course.description}}</p>
+            </section>
+
+            <!-- Ghi chú (Phase 2) -->
+            {{#if isEnrolled}}
+            <section class="cl-section">
+                <h2 class="cl-section__title">📝 Ghi chú của tôi</h2>
+                <div class="cl-notes">
+                    <div class="cl-notes__composer">
+                        <input type="text" class="cl-notes__input" id="note-input" placeholder="Nội dung ghi chú..." maxlength="5000">
+                        <button class="cl-btn cl-btn--primary" type="button" id="btn-add-note">＋ Thêm ghi chú</button>
+                    </div>
+                    <div id="note-list" class="cl-notes__list">
+                        <!-- JS render notes tại đây -->
+                    </div>
+                </div>
+            </section>
+            {{/if}}
+
+            <!-- Đánh giá (Phase 3) -->
+            <section class="cl-section">
+                <div class="cl-reviews__head">
+                    <h2 class="cl-section__title">⭐ Đánh giá khóa học</h2>
+                    <span class="cl-reviews__summary">
+                        {{#if reviewCount}}
+                            {{avgRating}}/5 ({{reviewCount}} đánh giá)
+                        {{else}}
+                            Chưa có đánh giá
+                        {{/if}}
+                    </span>
+                </div>
+
+                {{#if user}}
+                    {{#if isEnrolled}}
+                        <!-- Form đánh giá — chỉ user đã enroll -->
+                        <div class="cl-reviews__form">
+                            <div class="cl-reviews__stars" id="rating-input">
+                                <button type="button" class="cl-reviews__star" data-value="1" aria-label="Đánh giá 1 sao">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="2" aria-label="Đánh giá 2 sao">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="3" aria-label="Đánh giá 3 sao">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="4" aria-label="Đánh giá 4 sao">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="5" aria-label="Đánh giá 5 sao">☆</button>
+                            </div>
+                            <textarea class="cl-reviews__textarea" id="review-comment" rows="2" maxlength="2000"
+                                placeholder="Viết bình luận của bạn...">{{#if myReview}}{{myReview.comment}}{{/if}}</textarea>
+                            <button class="cl-btn cl-btn--primary cl-reviews__submit" id="btn-submit-review">
+                                {{#if myReview}}Cập nhật đánh giá{{else}}Gửi đánh giá{{/if}}
+                            </button>
+                        </div>
+                    {{else}}
+                        <p class="cl-reviews__hint">Đăng ký khóa học để đánh giá.</p>
+                    {{/if}}
+                {{else}}
+                    <p class="cl-reviews__hint"><a href="/auth/login">Đăng nhập</a> để đánh giá khóa học.</p>
+                {{/if}}
+
+                <!-- Danh sách review -->
+                <div id="review-list" class="cl-reviews__list">
+                    {{#each reviews}}
+                    <div class="cl-review">
+                        <div class="cl-review__head">
+                            <span class="cl-review__author">{{this.userName}}</span>
+                            <span class="cl-review__stars">{{#times this.rating}}★{{/times}}</span>
+                        </div>
+                        {{#if this.comment}}
+                        <p class="cl-review__comment">{{this.comment}}</p>
+                        {{/if}}
+                        <span class="cl-review__date">{{formatDate this.createdAt}}</span>
+                    </div>
+                    {{else}}
+                    <p class="cl-reviews__empty">Chưa có đánh giá nào.</p>
+                    {{/each}}
+                </div>
+            </section>
         </div>
 
-        <div class="col-lg-3">
+        <!-- Sidebar: course tree -->
+        <aside class="cl-side" aria-label="Danh sách bài học">
             {{#if hasTree}}
-            <div class="course-tree">
-                {{#each modules}}
-                <div class="module-block mb-3">
-                    <h6>{{this.name}}</h6>
-                    <ul class="list-unstyled">
-                        {{#each this.videos}}
-                        <li>
-                            <a href="#" class="video-item"
-                                data-youtube-id="{{this.youtubeId}}">
-                                {{this.title}}
-                            </a>
-                        </li>
-                        {{/each}}
-                    </ul>
+            <div class="cl-tree">
+                <div class="cl-tree__head">
+                    <h2 class="cl-tree__head-title">Nội dung khóa học</h2>
                 </div>
-                {{/each}}
+                <div class="cl-tree__modules">
+                    {{#each modules}}
+                    <div class="cl-tree__module">
+                        <h3 class="cl-tree__module-title">{{this.name}}</h3>
+                        <ul class="cl-tree__list">
+                            {{#each this.videos}}
+                            <li>
+                                <a href="#" class="cl-tree__item video-item"
+                                    data-youtube-id="{{this.youtubeId}}"
+                                    data-video-id="{{this._id}}">
+                                    <span class="cl-tree__item-title">{{this.title}}</span>
+                                    {{#if (lookup ../noteCounts this._id)}}
+                                    <span class="cl-tree__note-count">📝 {{lookup ../noteCounts this._id}}</span>
+                                    {{/if}}
+                                </a>
+                            </li>
+                            {{/each}}
+                        </ul>
+                    </div>
+                    {{/each}}
+                </div>
             </div>
             {{else}}
-            <p class="text-muted">Khóa học này chưa có cấu trúc Module/Video.</p>
+            <p class="cl-tree__empty">Khóa học này chưa có cấu trúc Module/Video.</p>
             {{/if}}
-        </div>
+        </aside>
     </div>
 </div>
 
 <script>
     $(document).ready(function () {
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+        // ---------- Helper CSRF headers ----------
+        function jsonHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken,
+            };
+        }
+
+        // ---------- Trạng thái video hiện tại ----------
+        let currentVideoId = null; // MongoDB _id của video (để complete/note)
+        let currentYoutubeId = null; // YouTube ID (để player)
+        let currentVideoCompleted = false; // video này đã hoàn thành chưa
+
+        const completedSet = new Set([
+            {{#each completedVideoIds}}"{{this}}"{{#unless @last}},{{/unless}}{{/each}}
+        ]);
+
+        function updateCompleteUi() {
+            const completed = currentVideoId && completedSet.has(currentVideoId);
+
+            $('#btn-complete-video').toggleClass('d-none', completed || !currentVideoId);
+            $('#btn-uncomplete-video').toggleClass('d-none', !completed);
+            $('#btn-complete-video').attr('aria-pressed', completed ? 'true' : 'false');
+        }
+
+        // ---------- Đổi video + ghi watch ----------
+        function playVideo(videoId, youtubeId) {
+            currentVideoId = videoId;
+            currentYoutubeId = youtubeId;
+
+            $('#main-player').attr('src', 'https://www.youtube.com/embed/' + youtubeId);
+            updateCompleteUi();
+            loadNotes();
+
+            if (videoId && csrfToken) {
+                fetch('/api/videos/' + videoId + '/watch', {
+                    method: 'POST',
+                    headers: jsonHeaders(),
+                }).catch(function () {}); // Lỗi ghi watch không làm hỏng trải nghiệm
+            }
+        }
+
+        // ---------- Progress ----------
+        function updateProgress(percent) {
+            $('#progress-bar').css('width', percent + '%');
+            $('#progress-label').text(percent + '%');
+        }
+
+        // ---------- Complete / Uncomplete ----------
+        $('#btn-complete-video').on('click', function () {
+            if (!currentVideoId) return;
+            const $btn = $(this);
+            $btn.prop('disabled', true);
+
+            fetch('/api/videos/' + currentVideoId + '/complete', {
+                method: 'POST',
+                headers: jsonHeaders(),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    completedSet.add(currentVideoId);
+                    updateCompleteUi();
+                    updateProgress(data.progressPercent);
+                    if (data.courseCompleted) {
+                        location.reload(); // show banner hoàn thành
+                    }
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                })
+                .finally(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+
+        $('#btn-uncomplete-video').on('click', function () {
+            if (!currentVideoId) return;
+            const $btn = $(this);
+            $btn.prop('disabled', true);
+
+            fetch('/api/videos/' + currentVideoId + '/complete', {
+                method: 'DELETE',
+                headers: jsonHeaders(),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    completedSet.delete(currentVideoId);
+                    updateCompleteUi();
+                    updateProgress(data.progressPercent);
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                })
+                .finally(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+
+        // ---------- Notes (Phase 2) ----------
+        function escapeHtml(str) {
+            return $('<div>').text(str == null ? '' : String(str)).html();
+        }
+
+        function loadNotes() {
+            $('#note-list').empty();
+            if (!currentVideoId) return;
+
+            fetch('/api/videos/' + currentVideoId + '/notes', {
+                method: 'GET',
+                headers: { 'x-csrf-token': csrfToken },
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    const notes = data.notes || [];
+                    if (!notes.length) {
+                        $('#note-list').append(
+                            '<div class="cl-note__empty">Chưa có ghi chú cho video này.</div>'
+                        );
+                        return;
+                    }
+                    notes.forEach(function (note) {
+                        $('#note-list').append(buildNoteHtml(note));
+                    });
+                })
+                .catch(function () {
+                    $('#note-list').append('<div class="cl-note__empty">Không tải được ghi chú.</div>');
+                });
+        }
+
+        function buildNoteHtml(note) {
+            const content = escapeHtml(note.content);
+            const date = new Date(note.createdAt);
+            const dateStr = date.toLocaleDateString('vi-VN');
+            return (
+                '<div class="cl-note" data-note-id="' + note._id + '">' +
+                '<div class="cl-note__content note-content">' + content + '</div>' +
+                '<div class="cl-note__meta">' + dateStr +
+                ' <button type="button" class="cl-note__action btn-edit-note">Sửa</button>' +
+                ' <button type="button" class="cl-note__action cl-note__action--danger btn-delete-note">Xóa</button>' +
+                '</div>' +
+                '</div>'
+            );
+        }
+
+        $('#btn-add-note').on('click', function () {
+            if (!currentVideoId) return;
+            const content = $('#note-input').val().trim();
+            if (!content) return;
+            const $btn = $(this);
+            $btn.prop('disabled', true);
+
+            fetch('/api/videos/' + currentVideoId + '/notes', {
+                method: 'POST',
+                headers: jsonHeaders(),
+                body: JSON.stringify({ content: content }),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function () {
+                    $('#note-input').val('');
+                    loadNotes();
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                })
+                .finally(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+
+        // Sửa note: hiện prompt đơn giản (nâng cao có thể đổi thành inline edit)
+        $(document).on('click', '.btn-edit-note', function () {
+            const $note = $(this).closest('[data-note-id]');
+            const noteId = $note.data('note-id');
+            const oldContent = $note.find('.note-content').text();
+
+            const newContent = prompt('Sửa ghi chú:', oldContent);
+            if (newContent === null || !newContent.trim()) return;
+
+            fetch('/api/notes/' + noteId, {
+                method: 'PUT',
+                headers: jsonHeaders(),
+                body: JSON.stringify({ content: newContent.trim() }),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    $note.find('.note-content').text(data.note.content);
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                });
+        });
+
+        // Xóa note
+        $(document).on('click', '.btn-delete-note', function () {
+            const $note = $(this).closest('[data-note-id]');
+            const noteId = $note.data('note-id');
+            if (!confirm('Xóa ghi chú này?')) return;
+
+            fetch('/api/notes/' + noteId, {
+                method: 'DELETE',
+                headers: jsonHeaders(),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    $note.remove();
+                    if (!$('#note-list').children().length) {
+                        $('#note-list').append(
+                            '<div class="cl-note__empty">Chưa có ghi chú cho video này.</div>'
+                        );
+                    }
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                });
+        });
+
+        // ---------- Sự kiện video sidebar ----------
         $('.video-item').on('click', function (e) {
             e.preventDefault();
             const youtubeId = $(this).data('youtube-id');
-            $('#main-player').attr(
-                'src',
-                'https://www.youtube.com/embed/' + youtubeId,
+            const videoId = $(this).data('video-id');
+            $('.video-item').removeClass('is-active');
+            $(this).addClass('is-active');
+            playVideo(videoId, youtubeId);
+        });
+
+        // ---------- Khởi tạo: video đầu tiên ----------
+        const firstVideo = $('.video-item').first();
+        if (firstVideo.length) {
+            firstVideo.addClass('is-active');
+            playVideo(
+                firstVideo.data('video-id'),
+                firstVideo.data('youtube-id')
             );
+        } else {
+            // Course cũ chưa migrate — không có video tree
+            $('#btn-complete-video, #btn-uncomplete-video').addClass('d-none');
+            $('#complete-hint').removeClass('d-none');
+        }
+
+        // ---------- Nút "Đăng ký khóa học" ----------
+        $('#btn-enroll').on('click', function () {
+            const $btn = $(this);
+            const courseId = $btn.data('course-id');
+            $btn.prop('disabled', true).text('Đang đăng ký...');
+
+            fetch('/api/courses/' + courseId + '/enroll', {
+                method: 'POST',
+                headers: jsonHeaders(),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    location.reload(); // reload để hiện progress bar + notes + completed state
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                    $btn.prop('disabled', false).text('+ Đăng ký khóa học');
+                });
+        });
+
+        // ---------- Review (Phase 3) ----------
+        const courseId = '{{course._id}}';
+        let selectedRating = {{#if myReview}}{{myReview.rating}}{{else}}0{{/if}};
+
+        // Hiển thị sao đã chọn (nếu đã review trước đó)
+        function renderStars() {
+            $('#rating-input .cl-reviews__star').each(function () {
+                const val = $(this).data('value');
+                $(this).text(val <= selectedRating ? '★' : '☆');
+                $(this).toggleClass('is-active', val <= selectedRating);
+            });
+        }
+        renderStars();
+
+        // Click chọn sao
+        $('#rating-input .cl-reviews__star').on('click', function () {
+            selectedRating = $(this).data('value');
+            renderStars();
+        });
+
+        // Submit review
+        $('#btn-submit-review').on('click', function () {
+            if (!selectedRating) {
+                alert('Vui lòng chọn số sao');
+                return;
+            }
+            const comment = $('#review-comment').val().trim();
+            const $btn = $(this);
+            $btn.prop('disabled', true);
+
+            fetch('/api/courses/' + courseId + '/reviews', {
+                method: 'POST',
+                headers: jsonHeaders(),
+                body: JSON.stringify({ rating: selectedRating, comment: comment }),
+            })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (data) {
+                            throw new Error(data.error || 'Lỗi không xác định');
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function () {
+                    location.reload(); // reload để hiện review mới + avgRating cập nhật
+                })
+                .catch(function (err) {
+                    alert(err.message || 'Đã có lỗi xảy ra, vui lòng thử lại');
+                    $btn.prop('disabled', false);
+                });
         });
     });
 </script>

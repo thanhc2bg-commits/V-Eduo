@@ -1,0 +1,114 @@
+<link rel="stylesheet" href="/css/course-table.css">
+
+<div class="mt-4">
+    <div class="page-header">
+        <h2>Lộ trình của tôi</h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/roadmaps/create" class="btn btn-primary btn-sm btn-soft">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Tạo lộ trình
+            </a>
+        </div>
+    </div>
+
+    <div class="course-table-wrap">
+        <table class="table course-table table-borderless align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">STT</th>
+                    <th scope="col">Tên lộ trình</th>
+                    <th scope="col">Công khai</th>
+                    <th scope="col">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each roadmaps}}
+                <tr>
+                    <th scope="row">{{sum @index 1}}</th>
+                    <td class="course-name">
+                        <a href="/roadmaps/{{this.slug}}" class="text-decoration-none course-name-link">{{this.name}}</a>
+                    </td>
+                    <td>
+                        {{#if this.isPublic}}
+                        <span class="badge-level" data-level="Cơ bản">Có</span>
+                        {{else}}
+                        <span class="badge-level">Không</span>
+                        {{/if}}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                        <a href="/roadmaps/{{this._id}}/edit" class="btn btn-soft btn-manage btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                            </svg>
+                            Quản lý
+                        </a>
+                        <button type="button" class="btn btn-soft btn-delete btn-sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-roadmap-name="{{this.name}}">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            Xóa
+                        </button>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state text-center">
+                            <div class="empty-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                                </svg>
+                            </div>
+                            <div class="empty-title">Chưa có lộ trình nào</div>
+                            <div class="empty-subtitle">Hãy tạo lộ trình học tập đầu tiên của bạn.</div>
+                            <a href="/roadmaps/create" class="btn btn-primary btn-soft btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Tạo lộ trình
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{> delete-modal}}
+
+<script>
+    $(document).ready(function() {
+        // Hiển thị flash message từ query param (?updated=1)
+        const params = new URLSearchParams(window.location.search);
+        let flashMsg = null;
+        if (params.get('updated')) flashMsg = 'Cập nhật lộ trình thành công!';
+        if (flashMsg) {
+            $('#flashToastBody').text(flashMsg);
+            bootstrap.Toast.getOrCreateInstance(document.getElementById('flashToast')).show();
+            // Xóa query param khỏi URL để không hiện lại khi refresh
+            history.replaceState(null, '', window.location.pathname);
+        }
+
+        var roadmapId;
+
+        // Khi modal hiển thị, lấy id + tên lộ trình từ nút Xóa được click
+        $('#delete-course-modal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            roadmapId = button.data('id');
+            var roadmapName = button.data('roadmap-name');
+            $('#delete-course-name').text(roadmapName || '');
+        });
+
+        // Khi click nút Xóa trong modal, submit form DELETE
+        $('#btn-delete-course').on('click', function() {
+            $('#delete-course-form').attr('action', '/roadmaps/' + roadmapId + '?_method=DELETE');
+            $('#delete-course-form').submit();
+        });
+    });
+</script>

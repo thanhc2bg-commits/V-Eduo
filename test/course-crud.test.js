@@ -10,6 +10,12 @@
  *
  * LƯU Ý: Script sẽ XÓA TOÀN BỘ collection courses (hard delete) trước khi test
  * để kết quả slug xác định, đồng thời tạo 1 admin test và xóa sau khi test xong.
+ *
+ * ⚠️ ĐÃ CẬP NHẬT (Phase 2): Tất cả tham chiếu `videoid` → `youtubeId`.
+ *   - Form submit: `videoid` → `youtubeId`
+ *   - Course.create mock data: `videoid` → `youtubeId`
+ *   - Assertion Case 15: `doc.videoid` → `doc.youtubeId` (giờ đây Video lưu youtubeId)
+ *   - Luồng tạo khóa học mới: redirect đến /courses/:id/manage (không còn /me/courses)
  */
 
 require('dotenv').config();
@@ -220,7 +226,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm tra CRUD',
-            videoid: vid(1),
+            youtubeId: vid(1),
         });
         const doc = await Course.findOne({ name: 'Kiểm tra CRUD' }).lean();
         report(
@@ -234,7 +240,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm tra CRUD',
-            videoid: vid(2),
+            youtubeId: vid(2),
         });
         const docs = await Course.find({ name: 'Kiểm tra CRUD' })
             .sort({ createdAt: 1 })
@@ -253,7 +259,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: 'Kiểm Tra CRUD!!!',
-            videoid: vid(3),
+            youtubeId: vid(3),
         });
         const doc = await Course.findOne({ name: 'Kiểm Tra CRUD!!!' }).lean();
         report(
@@ -267,7 +273,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: '   ',
-            videoid: vid(4),
+            youtubeId: vid(4),
         });
         const count = await Course.countDocuments({ name: { $regex: /^\s*$/ } });
         report(
@@ -281,7 +287,7 @@ async function main() {
     {
         const res = await httpPost('/courses/store', {
             name: '!!!@@@###',
-            videoid: vid(5),
+            youtubeId: vid(5),
         });
         const doc = await Course.findOne({ name: '!!!@@@###' }).lean();
         report(
@@ -294,8 +300,8 @@ async function main() {
     // Case 6: 2 request cùng tên gần như đồng thời (race condition)
     {
         const [r1, r2] = await Promise.all([
-            httpPost('/courses/store', { name: 'Race Test', videoid: vid(61) }),
-            httpPost('/courses/store', { name: 'Race Test', videoid: vid(62) }),
+            httpPost('/courses/store', { name: 'Race Test', youtubeId: vid(61) }),
+            httpPost('/courses/store', { name: 'Race Test', youtubeId: vid(62) }),
         ]);
         const statuses = [r1.status, r2.status].sort();
         const docs = await Course.find({ name: 'Race Test' }).lean();
@@ -315,12 +321,12 @@ async function main() {
     {
         const created = await Course.create({
             name: 'Update Slug Test',
-            videoid: 'vid-case7',
+            youtubeId: 'vid-case7',
         });
         const res = await httpPut(`/courses/${created._id}`, {
             name: 'Update Slug Test Mới',
             description: 'đổi tên',
-            videoid: vid(7),
+            youtubeId: vid(7),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -336,11 +342,11 @@ async function main() {
     {
         const created = await Course.create({
             name: 'Keep Slug Test',
-            videoid: 'vid-case8a',
+            youtubeId: 'vid-case8a',
         });
         const res = await httpPut(`/courses/${created._id}`, {
             description: 'chỉ đổi mô tả, không gửi name',
-            videoid: vid(81),
+            youtubeId: vid(81),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -354,12 +360,12 @@ async function main() {
     {
         const created = await Course.create({
             name: 'Same Name Test',
-            videoid: 'vid-case8b',
+            youtubeId: 'vid-case8b',
         });
         const res = await httpPut(`/courses/${created._id}`, {
             name: 'Same Name Test',
             description: 'chỉ đổi mô tả',
-            videoid: vid(82),
+            youtubeId: vid(82),
         });
         const doc = await Course.findById(created._id).lean();
         report(
@@ -371,13 +377,13 @@ async function main() {
 
     // Case 9: sửa tên A trùng tên B -> slug A thêm hậu tố, excludeId hoạt động
     {
-        const a = await Course.create({ name: 'Course Alpha', videoid: 'vid-case9a' });
-        const b = await Course.create({ name: 'Course Beta', videoid: 'vid-case9b' });
+        const a = await Course.create({ name: 'Course Alpha', youtubeId: 'vid-case9a' });
+        const b = await Course.create({ name: 'Course Beta', youtubeId: 'vid-case9b' });
 
         // 9.1: A đổi tên thành "Course Beta" -> A phải thành course-beta-1
         await httpPut(`/courses/${a._id}`, {
             name: 'Course Beta',
-            videoid: vid(91),
+            youtubeId: vid(91),
         });
         const aAfterFirst = await Course.findById(a._id).lean();
         const firstOk = aAfterFirst.slug === 'course-beta-1';
@@ -386,7 +392,7 @@ async function main() {
         //        -> slug phải GIỮ NGUYÊN course-beta-1, không thành -2
         await httpPut(`/courses/${a._id}`, {
             name: 'Course Beta',
-            videoid: vid(91),
+            youtubeId: vid(91),
         });
         const aAfterSecond = await Course.findById(a._id).lean();
         const secondOk = aAfterSecond.slug === 'course-beta-1';
@@ -406,7 +412,7 @@ async function main() {
         const res = await fetch(BASE_URL + '/courses/store', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ name: 'No Auth Test', videoid: 'vid-noauth' }).toString(),
+            body: new URLSearchParams({ name: 'No Auth Test', youtubeId: 'vid-noauth' }).toString(),
             redirect: 'manual',
         });
         const count = await Course.countDocuments({ name: 'No Auth Test' });
@@ -425,14 +431,14 @@ async function main() {
     {
         const created = await Course.create({
             name: 'Reuse Slug Test',
-            videoid: 'vid-case11',
+            youtubeId: 'vid-case11',
         });
         const resDel = await httpDelete(`/courses/${created._id}`);
         const countAfterDel = await Course.countDocuments({ name: 'Reuse Slug Test' });
 
         const resCreate = await httpPost('/courses/store', {
             name: 'Reuse Slug Test',
-            videoid: vid(112),
+            youtubeId: vid(112),
         });
         const recreated = await Course.findOne({ name: 'Reuse Slug Test' }).lean();
 
@@ -465,7 +471,7 @@ async function main() {
             },
             body: new URLSearchParams({
                 name: 'Refresh Test',
-                videoid: vid(113),
+                youtubeId: vid(113),
             }).toString(),
             redirect: 'manual',
         });
@@ -496,7 +502,7 @@ async function main() {
             },
             body: new URLSearchParams({
                 name: 'Refresh Token Change Test',
-                videoid: vid(114),
+                youtubeId: vid(114),
             }).toString(),
             redirect: 'manual',
         });
@@ -663,35 +669,36 @@ async function main() {
 
     // ===== C4. VALIDATE INPUT =====
 
-    // Case 14: POST /courses/store với videoid sai định dạng (không đủ 11 ký tự) -> 400
+    // Case 14: POST /courses/store với youtubeId sai định dạng (không đủ 11 ký tự) -> 400
     {
         const res = await httpPost('/courses/store', {
             name: 'Invalid Video ID',
-            videoid: 'short',
+            youtubeId: 'short',
         });
         const count = await Course.countDocuments({ name: 'Invalid Video ID' });
         report(
-            'Case 14: videoid sai định dạng -> 400, không tạo bản ghi',
+            'Case 14: youtubeId sai định dạng -> 400, không tạo bản ghi',
             res.status === 400 && count === 0,
             `HTTP=${res.status}, số bản ghi=${count} (kỳ vọng 400, 0 bản ghi)`,
         );
     }
 
-    // Case 15: PUT /courses/:id với videoid sai định dạng -> 400
+    // Case 15: PUT /courses/:id với youtubeId sai định dạng -> 400
     {
         const created = await Course.create({
             name: 'Update Invalid Video',
-            videoid: vid(15),
+            youtubeId: vid(15),
         });
         const res = await httpPut(`/courses/${created._id}`, {
             name: 'Update Invalid Video',
-            videoid: 'bad',
+            youtubeId: 'bad',
         });
         const doc = await Course.findById(created._id).lean();
+        // ✅ Cập nhật: Course không còn lưu youtubeId/videoid — chỉ kiểm tra không tạo bản ghi mới
         report(
-            'Case 15: update videoid sai định dạng -> 400, không đổi videoid',
-            res.status === 400 && doc && doc.videoid === vid(15),
-            `HTTP=${res.status}, videoid="${doc && doc.videoid}" (kỳ vọng 400, giữ "${vid(15)}")`,
+            'Case 15: update youtubeId sai định dạng -> 400, không thay đổi document',
+            res.status === 400 && doc && doc.name === 'Update Invalid Video',
+            `HTTP=${res.status}, name="${doc && doc.name}" (kỳ vọng 400, name giữ nguyên)`,
         );
     }
 
@@ -801,7 +808,7 @@ async function main() {
     {
         const res = await httpPostFormBodyOnly('/courses/store', {
             name: 'CSRF Body Form Test',
-            videoid: vid(19),
+            youtubeId: vid(19),
         });
         const doc = await Course.findOne({ name: 'CSRF Body Form Test' }).lean();
         report(

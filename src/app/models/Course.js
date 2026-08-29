@@ -17,7 +17,6 @@ const Course = new Schema(
         },
         description: { type: String },
         image: { type: String },
-        videoid: { type: String, required: true },
         level: { type: String },
         slug: { type: String, unique: true },
         createdBy: {
@@ -30,7 +29,16 @@ const Course = new Schema(
             ref: 'Roadmap',
             required: false,
         },
+        roadmapOrder: {
+            type: Number,
+            required: false,
+            default: null,
+        },
         isPublic: { type: Boolean, default: true },
+        // 🔒 Opt-in: chủ course phải chủ động bật "Cấp chứng chỉ khi hoàn thành"
+        // thì issueCertificate() mới được gọi. Mặc định FALSE — course cũ (đã tồn tại
+        // trước khi field này ra đời) sẽ KHÔNG tự động phát chứng chỉ ngoài ý muốn.
+        certificate: { type: Boolean, default: false },
     },
     {
         timestamps: true,
@@ -93,6 +101,8 @@ Course.plugin(mongooseDelete, {
     deletedAt: true,
     overrideMethods: 'all',
 });
+
+Course.index({ roadmapId: 1, roadmapOrder: 1, createdAt: 1 });
 
 // TODO (chưa fix trong đợt này): pre('findOneAndUpdate') chỉ đúng khi query theo _id.
 // Nếu query theo slug thì excludeId = undefined -> slug tự thêm hậu tố lạ.

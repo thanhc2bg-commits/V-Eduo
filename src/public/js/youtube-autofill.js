@@ -7,7 +7,7 @@
  * KHÔNG tự trigger khi trang load.
  */
 $(document).ready(function () {
-    var $videoIdInput = $('#videoid');
+    var $videoIdInput = $('#youtubeId');
     var $nameInput = $('#name');
     var $btnAutofill = $('#btn-autofill');
     var $previewBox = $('#video-preview');

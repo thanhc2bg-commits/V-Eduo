@@ -147,11 +147,39 @@ async function fetchPlaylistVideos(playlistId, apiKey) {
         pageToken = data.nextPageToken || '';
     } while (pageToken && totalFetched < MAX_VIDEOS_PER_BATCH);
 
-    return { videos };
+    // Nếu vòng lặp dừng nhưng vẫn còn pageToken (còn trang tiếp theo),
+    // nghĩa là playlist có nhiều video hơn MAX_VIDEOS_PER_BATCH và đã bị cắt bớt.
+    const truncated = Boolean(pageToken);
+
+    return { videos, truncated };
+}
+
+// Regex YouTube video ID (đúng 11 ký tự [A-Za-z0-9_-])
+const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
+/**
+ * Parse YouTube video ID từ input: ID thuần (11 ký tự) hoặc link watch?v= / youtu.be
+ * Trả về ID hợp lệ 11 ký tự, hoặc null.
+ * Dùng chung cho cả client (youtube-autofill.js) và server (controller, validator).
+ */
+function extractVideoId(input) {
+    if (!input) return null;
+    const value = String(input).trim();
+    // Dạng ID thuần (đúng 11 ký tự)
+    if (YOUTUBE_ID_REGEX.test(value)) return value;
+    // Dạng https://www.youtube.com/watch?v=XXXX
+    const watch = value.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+    if (watch) return watch[1];
+    // Dạng https://youtu.be/XXXX
+    const short = value.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (short) return short[1];
+    return null;
 }
 
 module.exports = {
     extractPlaylistId,
+    extractVideoId,
     fetchPlaylistVideos,
     MAX_VIDEOS_PER_BATCH,
+    YOUTUBE_ID_REGEX,
 };

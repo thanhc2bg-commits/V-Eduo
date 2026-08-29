@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-08-18T12:09:16.538Z",
+  "batchSize": 200,
+  "roadmaps": {
+    "scanned": 5,
+    "updated": 1,
+    "skipped": 4
+  },
+  "courses": {
+    "roadmapsScanned": 5,
+    "scanned": 6,
+    "updated": 6,
+    "skipped": 0,
+    "orphansReset": 0
+  },
+  "errors": []
+}

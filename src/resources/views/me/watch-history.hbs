@@ -1,0 +1,41 @@
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold mb-0">🕘 Lịch sử xem</h2>
+        <a href="/me/courses" class="btn btn-outline-secondary btn-sm">Khóa học của tôi</a>
+    </div>
+
+    {{#if grouped.length}}
+        {{#each grouped}}
+        <div class="mb-4">
+            <h6 class="text-muted text-uppercase small fw-semibold mb-2">{{this.label}}</h6>
+            <div class="list-group">
+                {{#each this.items}}
+                <div class="list-group-item d-flex align-items-center gap-3 py-2">
+                    <span class="text-primary">🎬</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small">{{this.title}}</div>
+                        {{#if this.courseName}}
+                        <div class="text-muted small">Khóa: {{this.courseName}}</div>
+                        {{/if}}
+                    </div>
+                    <span class="text-muted small">{{formatDate this.createdAt}}</span>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+        {{/each}}
+
+        {{#if pagination.hasMore}}
+        <div class="text-center mt-3">
+            <a href="/me/watch-history?page={{sum pagination.page 1}}" class="btn btn-outline-primary btn-sm">
+                Xem thêm
+            </a>
+        </div>
+        {{/if}}
+    {{else}}
+        <div class="text-center text-muted py-5">
+            <p class="mb-2">Bạn chưa xem video nào.</p>
+            <a href="/courses" class="btn btn-primary btn-sm">Khám phá khóa học</a>
+        </div>
+    {{/if}}
+</div>

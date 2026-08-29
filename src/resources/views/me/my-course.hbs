@@ -1,123 +1,50 @@
-<link rel="stylesheet" href="/css/course-table.css">
-
-<div class="mt-4">
-    <div class="page-header">
-        <h2>Khóa học của tôi</h2>
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="/courses/create" class="btn btn-primary btn-sm btn-soft">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Thêm khóa học
-            </a>
-        </div>
+<link rel="stylesheet" href="/css/me-dashboard.css">
+<div class="me-shell">
+  <header class="me-header">
+    <div>
+      <span class="me-header__eyebrow">Workbench</span>
+      <h1>Khóa học của tôi</h1>
+      <p class="me-header__desc">Quản lý danh sách khóa học, cấu trúc bài học và thông tin xuất bản.</p>
     </div>
-
-    <div class="course-table-wrap">
-        <table class="table course-table table-borderless align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">STT</th>
-                    <th scope="col">Tên khóa học</th>
-                    <th scope="col">Trình độ</th>
-                    <th scope="col">Thời gian</th>
-                    <th scope="col">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{#each courses}}
-                <tr>
-                    <th scope="row">{{sum @index 1}}</th>
-                    <td class="course-name">
-                        <a href="/courses/{{this.slug}}" class="text-decoration-none course-name-link">{{this.name}}</a>
-                    </td>
-                    <td>
-                        {{#if this.level}}
-                        <span class="badge-level" data-level="{{this.level}}">{{this.level}}</span>
-                        {{else}}
-                        <span class="badge-level">Chưa cập nhật</span>
-                        {{/if}}
-                    </td>
-                    <td class="course-date">{{formatDate this.createdAt}}</td>
-                    <td>
-                        <div class="d-flex gap-1 flex-wrap">
-                        <a href="/courses/{{this._id}}/manage" class="btn btn-soft btn-manage btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                            </svg>
-                            Quản lý
-                        </a>
-                        <a href="/courses/{{this._id}}/edit" class="btn btn-soft btn-edit btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                            </svg>
-                            Sửa
-                        </a>
-                        <button type="button" class="btn btn-soft btn-delete btn-sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-course-name="{{this.name}}">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                            Xóa
-                        </button>
-                        </div>
-                    </td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="6">
-                        <div class="empty-state text-center">
-                            <div class="empty-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                                </svg>
-                            </div>
-                            <div class="empty-title">Chưa có khóa học nào</div>
-                            <div class="empty-subtitle">Hãy thêm khóa học đầu tiên của bạn để bắt đầu.</div>
-                            <a href="/courses/create" class="btn btn-primary btn-soft btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                </svg>
-                                Thêm khóa học
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {{/each}}
-            </tbody>
-        </table>
+    <div class="me-header__actions">
+      <a href="/courses/create" class="me-btn me-btn--primary">Thêm khóa học</a>
     </div>
+  </header>
+  <div class="me-card">
+    <div class="me-table-wrap">
+      <table class="me-table">
+        <thead><tr><th>#</th><th>Tên khóa học</th><th>Trình độ</th><th>Ngày tạo</th><th class="text-end">Thao tác</th></tr></thead>
+        <tbody>
+          {{#each courses}}
+          <tr>
+            <td class="me-table__index">{{sum @index 1}}</td>
+            <td><a href="/courses/{{this.slug}}" class="me-table__name">{{this.name}}</a></td>
+            <td>{{#if this.level}}<span class="me-badge me-badge--neutral">{{this.level}}</span>{{else}}<span class="me-badge me-badge--neutral">Chưa cập nhật</span>{{/if}}</td>
+            <td class="me-table__muted">{{formatDate this.createdAt}}</td>
+            <td><div class="me-table__actions">
+              <a href="/courses/{{this._id}}/manage" class="me-btn me-btn--ghost me-btn--sm">Quản lý</a>
+              <a href="/courses/{{this._id}}/edit" class="me-btn me-btn--ghost me-btn--sm">Sửa</a>
+              <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-course-name="{{this.name}}">Xóa</button>
+            </div></td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5"><div class="me-empty">
+            <div class="me-empty__icon">📚</div>
+            <div class="me-empty__title">Chưa có khóa học nào</div>
+            <div class="me-empty__subtitle">Hãy thêm khóa học đầu tiên của bạn để bắt đầu.</div>
+            <a href="/courses/create" class="me-btn me-btn--primary me-btn--sm">Thêm khóa học</a>
+          </div></td></tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
-
 {{> delete-modal}}
-
 <script>
-    $(document).ready(function() {
-        // Hiển thị flash message từ query param (?created=1 / ?updated=1)
-        const params = new URLSearchParams(window.location.search);
-        let flashMsg = null;
-        if (params.get('created')) flashMsg = 'Tạo khóa học thành công!';
-        else if (params.get('updated')) flashMsg = 'Cập nhật khóa học thành công!';
-        if (flashMsg) {
-            $('#flashToastBody').text(flashMsg);
-            bootstrap.Toast.getOrCreateInstance(document.getElementById('flashToast')).show();
-            // Xóa query param khỏi URL để không hiện lại khi refresh
-            history.replaceState(null, '', window.location.pathname);
-        }
-
-        var courseId;
-
-        // Khi modal hiển thị, lấy id + tên khóa học từ nút Xóa được click
-        $('#delete-course-modal').on('show.bs.modal', function(event) {
-            var button = $(event.relatedTarget);
-            courseId = button.data('id');
-            var courseName = button.data('course-name');
-            $('#delete-course-name').text(courseName || '');
-        });
-
-        // Khi click nút Xóa trong modal, submit form DELETE
-        $('#btn-delete-course').on('click', function() {
-            $('#delete-course-form').attr('action', '/courses/' + courseId + '?_method=DELETE');
-            $('#delete-course-form').submit();
-        });
-    });
+.ready(function(){
+  var courseId;
+  .on('show.bs.modal',function(e){var b=;courseId=b.data('id');.text(b.data('course-name')||'');});
+  .on('click',function(){.attr('action','/courses/'+courseId+'?_method=DELETE');.submit();});
+});
 </script>

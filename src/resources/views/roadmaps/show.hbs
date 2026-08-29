@@ -1,0 +1,25 @@
+<div class="mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>{{roadmap.name}}</h2>
+        {{#if canManage}}
+        <a href="/roadmaps/{{roadmap._id}}/edit" class="btn btn-outline-secondary btn-sm">Quản lý</a>
+        {{/if}}
+    </div>
+    <p class="text-muted">{{roadmap.description}}</p>
+
+    <h5 class="mt-4">Các khóa học trong lộ trình</h5>
+    <div class="row">
+        {{#each courses}}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">{{this.name}}</h6>
+                    <a href="/courses/{{this.slug}}" class="btn btn-outline-primary btn-sm">Vào học</a>
+                </div>
+            </div>
+        </div>
+        {{else}}
+        <p class="text-muted">Lộ trình này chưa có khóa học nào.</p>
+        {{/each}}
+    </div>
+</div>

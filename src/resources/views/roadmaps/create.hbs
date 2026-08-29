@@ -1,0 +1,102 @@
+<meta name="csrf-token" content="{{csrfToken}}">
+<link rel="stylesheet" href="/css/roadmap-builder.css">
+
+<div class="container mt-4">
+    <div class="roadmap-builder-page">
+                <div class="roadmap-builder-head">
+            <h2>Tạo Lộ Trình Học Tập</h2>
+            <p>Thiết kế lộ trình học có cấu trúc rõ ràng bằng cách kết nối nhiều khóa học.</p>
+        </div>
+
+        <form action="/roadmaps" method="POST" class="roadmap-builder-grid">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+
+            <div class="rb-card">
+                <h3>Thông Tin Lộ Trình</h3>
+
+                <div class="mb-3">
+                    <label class="rb-label" for="name">Tên lộ trình <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control rb-control" id="name" name="name" placeholder="Ví dụ: Lập trình Web Full-Stack từ Zero đến Hero" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="rb-label" for="description">Mô tả chi tiết</label>
+                    <textarea class="form-control rb-control" id="description" name="description" rows="4" placeholder="Mô tả mục tiêu và kết quả đầu ra của lộ trình..."></textarea>
+                </div>
+
+                <div class="rb-grid-2">
+                    <div>
+                        <label class="rb-label" for="category">Danh mục</label>
+                        <select class="form-select rb-control" id="category" name="category">
+                            <option value="">Chọn danh mục</option>
+                            <option value="Khoa học máy tính">Khoa học máy tính</option>
+                            <option value="Lập trình Web">Lập trình Web</option>
+                            <option value="Khoa học dữ liệu">Khoa học dữ liệu</option>
+                            <option value="Lập trình Di động">Lập trình Di động</option>
+                            <option value="DevOps">DevOps</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="rb-label" for="difficulty">Độ khó</label>
+                        <select class="form-select rb-control" id="difficulty" name="difficulty">
+                            <option value="">Chọn độ khó</option>
+                            <option value="Mới bắt đầu">Mới bắt đầu</option>
+                            <option value="Trung cấp">Trung cấp</option>
+                            <option value="Nâng cao">Nâng cao</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+                        <div class="d-grid gap-3">
+                <div class="rb-card">
+                    <h3>Cài Đặt Xuất Bản</h3>
+                    <div class="rb-radio-group mb-2">
+                        <label class="rb-radio">
+                            <input type="radio" name="visibility" value="public" checked>
+                            <span><strong>Công khai (Public)</strong><span>Hiển thị với tất cả học viên.</span></span>
+                        </label>
+                        <label class="rb-radio">
+                            <input type="radio" name="visibility" value="private">
+                            <span><strong>Riêng tư (Private)</strong><span>Chỉ ai có liên kết mới xem được.</span></span>
+                        </label>
+                        <label class="rb-radio">
+                            <input type="radio" name="visibility" value="draft">
+                            <span><strong>Bản nháp (Draft)</strong><span>Lưu nháp, chưa hiển thị ra ngoài.</span></span>
+                        </label>
+                    </div>
+                    <div class="rb-actions">
+                        <button type="submit" class="rb-btn-primary">Tạo Lộ Trình</button>
+                    </div>
+                </div>
+
+                <div class="rb-card">
+                    <h3>Ảnh Bìa Lộ Trình</h3>
+                    <label class="rb-label" for="coverImage">Đường dẫn ảnh (URL)</label>
+                    <input type="url" class="form-control rb-control mb-2" id="coverImage" name="coverImage" placeholder="https://...">
+                    <div class="rb-cover-preview" id="coverPreview">
+                        <div class="rb-cover-empty">Xem trước ảnh bìa sẽ hiển thị ở đây.</div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const coverInput = document.getElementById('coverImage');
+        const preview = document.getElementById('coverPreview');
+
+        function renderCover() {
+            const value = (coverInput.value || '').trim();
+            if (!value) {
+                preview.innerHTML = '<div class="rb-cover-empty">Preview ảnh bìa sẽ hiển thị ở đây.</div>';
+                return;
+            }
+            preview.innerHTML = '<img src="' + value + '" alt="Cover preview" onerror="this.parentElement.innerHTML=\'<div class=\'rb-cover-empty\'>Không thể tải ảnh, hãy kiểm tra lại URL.</div>\'">';
+        }
+
+        coverInput.addEventListener('input', renderCover);
+    })();
+</script>

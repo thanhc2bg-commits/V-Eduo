@@ -5,6 +5,27 @@ const {
     multipleMongooseToObject,
 } = require('../../utils/mongoose');
 
+function normalizeVisibility(rawVisibility, rawIsPublic) {
+    if (
+        rawVisibility === 'public' ||
+        rawVisibility === 'private' ||
+        rawVisibility === 'draft'
+    ) {
+        return rawVisibility;
+    }
+    const isPublic = Array.isArray(rawIsPublic)
+        ? rawIsPublic.includes('true')
+        : rawIsPublic === 'true' || rawIsPublic === true;
+    return isPublic ? 'public' : 'private';
+}
+
+function isRoadmapPublic(roadmap) {
+    if (roadmap.visibility === 'public') return true;
+    if (roadmap.visibility === 'private' || roadmap.visibility === 'draft')
+        return false;
+    return !!roadmap.isPublic;
+}
+
 class RoadmapController {
     //[GET] /roadmaps
     async index(req, res, next) {
@@ -12,10 +33,29 @@ class RoadmapController {
             let query;
             if (req.user) {
                 query = {
-                    $or: [{ isPublic: true }, { createdBy: req.user.id }],
+                    $or: [
+                        { visibility: 'public' },
+                        {
+                            $and: [
+                                { visibility: { $exists: false } },
+                                { isPublic: true },
+                            ],
+                        },
+                        { createdBy: req.user.id },
+                    ],
                 };
             } else {
-                query = { isPublic: true };
+                query = {
+                    $or: [
+                        { visibility: 'public' },
+                        {
+                            $and: [
+                                { visibility: { $exists: false } },
+                                { isPublic: true },
+                            ],
+                        },
+                    ],
+                };
             }
             const roadmaps = await Roadmap.find(query).sort({ createdAt: -1 });
             res.render('roadmaps/index', {
@@ -48,7 +88,7 @@ class RoadmapController {
                 roadmap.createdBy.equals(req.user.id);
             const isAdmin = req.user && req.user.role === 'admin';
 
-            if (!roadmap.isPublic && !isOwner && !isAdmin) {
+            if (!isRoadmapPublic(roadmap) && !isOwner && !isAdmin) {
                 return res.status(403).render('errors/403', {
                     layout: false,
                     error: 'Bạn không có quyền truy cập trang này',
@@ -56,15 +96,17 @@ class RoadmapController {
                 });
             }
 
-            const courses = await Course.find({ roadmapId: roadmap._id }).sort({
-                createdAt: 1,
-            });
+            const courses = await Course.find({ roadmapId: roadmap._id }).sort([
+                ['roadmapOrder', 1],
+                ['createdAt', 1],
+            ]);
 
             res.render('roadmaps/show', {
                 roadmap: mongooseToObject(roadmap),
                 courses: multipleMongooseToObject(courses),
                 isOwner: !!isOwner,
                 isAdmin: !!isAdmin,
+                canManage: !!isOwner || !!isAdmin,
             });
         } catch (err) {
             next(err);
@@ -105,18 +147,32 @@ class RoadmapController {
     //[POST] /roadmaps
     async store(req, res, next) {
         try {
-            const { name, description, isPublic } = req.body;
+            const {
+                name,
+                description,
+                isPublic,
+                visibility,
+                category,
+                difficulty,
+                coverImage,
+            } = req.body;
             if (!name || !String(name).trim()) {
                 return res.status(400).send('Tên lộ trình không được để trống');
             }
 
+            const normalizedVisibility = normalizeVisibility(
+                visibility,
+                isPublic,
+            );
+
             const roadmap = new Roadmap({
                 name,
                 description,
-                isPublic:
-                    isPublic !== undefined
-                        ? isPublic === 'on' || isPublic === true
-                        : true,
+                visibility: normalizedVisibility,
+                isPublic: normalizedVisibility === 'public',
+                category,
+                difficulty,
+                coverImage,
                 createdBy: req.user.id,
             });
             await roadmap.save();
@@ -131,7 +187,15 @@ class RoadmapController {
     async update(req, res, next) {
         try {
             const roadmap = req.resource;
-            const { name, description, isPublic } = req.body;
+            const {
+                name,
+                description,
+                isPublic,
+                visibility,
+                category,
+                difficulty,
+                coverImage,
+            } = req.body;
 
             if (name !== undefined) {
                 if (!String(name).trim()) {
@@ -142,9 +206,17 @@ class RoadmapController {
                 roadmap.name = name;
             }
             if (description !== undefined) roadmap.description = description;
-            if (isPublic !== undefined) {
-                roadmap.isPublic = isPublic === 'on' || isPublic === true;
+            if (visibility !== undefined || isPublic !== undefined) {
+                const normalizedVisibility = normalizeVisibility(
+                    visibility,
+                    isPublic,
+                );
+                roadmap.visibility = normalizedVisibility;
+                roadmap.isPublic = normalizedVisibility === 'public';
             }
+            if (category !== undefined) roadmap.category = category;
+            if (difficulty !== undefined) roadmap.difficulty = difficulty;
+            if (coverImage !== undefined) roadmap.coverImage = coverImage;
 
             await roadmap.save();
             res.redirect('/roadmaps/' + roadmap._id + '/edit');
@@ -170,7 +242,8 @@ class RoadmapController {
     async assignCourses(req, res, next) {
         try {
             const roadmap = req.resource;
-            const { courseIds } = req.body;
+            let { courseIds } = req.body;
+            if (courseIds === undefined) courseIds = [];
             if (!Array.isArray(courseIds)) {
                 return res
                     .status(400)
@@ -202,22 +275,20 @@ class RoadmapController {
             if (toUnassign.length > 0) {
                 await Course.updateMany(
                     { _id: { $in: toUnassign } },
-                    { roadmapId: null },
+                    { roadmapId: null, roadmapOrder: null },
                 );
             }
             if (validRequestedIds.length > 0) {
-                await Course.updateMany(
-                    { _id: { $in: validRequestedIds }, createdBy: req.user.id },
-                    { roadmapId: roadmap._id },
-                );
+                const bulkOps = validRequestedIds.map((id, index) => ({
+                    updateOne: {
+                        filter: { _id: id, createdBy: req.user.id },
+                        update: { roadmapId: roadmap._id, roadmapOrder: index },
+                    },
+                }));
+                await Course.bulkWrite(bulkOps);
             }
 
-            const updatedCourses = await Course.find({
-                roadmapId: roadmap._id,
-            });
-            res.json({
-                courses: multipleMongooseToObject(updatedCourses),
-            });
+            res.redirect('/roadmaps/' + roadmap._id + '/edit');
         } catch (err) {
             next(err);
         }

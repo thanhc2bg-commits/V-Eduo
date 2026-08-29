@@ -26,6 +26,7 @@
     "start": "nodemon --inspect src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "create-admin": "node scripts/create-admin.js",
+    "migrate-roadmap-v2": "node scripts/migrate-roadmap-v2.js",
     "prepare": "husky"
   },
   "lint-staged": {

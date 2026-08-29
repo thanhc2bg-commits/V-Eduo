@@ -1,3 +1,6 @@
+// ✅ ĐÃ CẬP NHẬT (Phase 2): `videoid` → `youtubeId` trong form submit + tìm course bằng name.
+//   - Form submit: `youtubeId: courseVideoid`
+//   - Tìm course: `Course.findOne({ name: courseName })` (Course không còn lưu youtubeId)
 require('dotenv').config();
 const axios = require('axios');
 const { wrapper } = require('axios-cookiejar-support');
@@ -74,14 +77,15 @@ function makeYoutubeId(prefix) {
     const courseName = `Sample AJAX Course ${Date.now()}`;
     const store = await sendWithCsrf('post', '/courses/store', {
         name: courseName,
-        videoid: courseVideoid,
+        youtubeId: courseVideoid,
         description: 'Khóa học mẫu để test chuyển video AJAX (không reload)',
     });
     if (store.status !== 302) {
         console.error('[FAIL] Tạo Course:', store.status, store.data);
         process.exit(1);
     }
-    const courseDoc = await Course.findOne({ videoid: courseVideoid });
+    // ✅ Cập nhật: Course không còn lưu videoid/youtubeId — tìm bằng name thay thế
+    const courseDoc = await Course.findOne({ name: courseName });
     const courseId = courseDoc._id.toString();
     const slug = courseDoc.slug;
     console.log('[OK] Course tạo:', courseName, '->', slug, '(' + courseId + ')');

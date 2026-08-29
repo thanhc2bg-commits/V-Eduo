@@ -3,6 +3,8 @@
  * Mỗi hàm trả về { ok, error } — nếu ok=false thì error là message lỗi.
  */
 
+const { extractVideoId } = require('./youtube');
+
 // Regex kiểm tra email cơ bản
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -59,23 +61,24 @@ function validateLogin(body) {
 /**
  * Validate dữ liệu tạo/cập nhật khóa học.
  * - name: bắt buộc, không rỗng sau trim
- * - videoid: bắt buộc, phải đúng 11 ký tự YouTube ID (nếu có gửi lên)
+ * - youtubeId: bắt buộc khi CREATE, phải là YouTube ID hợp lệ (11 ký tự)
+ *   hoặc URL YouTube hợp lệ (sẽ được extractVideoId trích xuất)
  */
 function validateCourse(body, isUpdate = false) {
-    const { name, videoid } = body || {};
+    const { name, youtubeId } = body || {};
 
     if (!isUpdate) {
-        // CREATE: bắt buộc có name + videoid
+        // CREATE: bắt buộc có name + youtubeId
         if (!name || !String(name).trim()) {
             return { ok: false, error: 'Tên khóa học không được để trống' };
         }
-        if (!videoid || !String(videoid).trim()) {
+        if (!youtubeId || !String(youtubeId).trim()) {
             return { ok: false, error: 'ID Video không được để trống' };
         }
-        if (!YOUTUBE_ID_REGEX.test(String(videoid).trim())) {
+        if (!extractVideoId(youtubeId)) {
             return {
                 ok: false,
-                error: 'ID Video không hợp lệ (phải đúng 11 ký tự)',
+                error: 'ID Video không hợp lệ (phải đúng 11 ký tự hoặc link YouTube hợp lệ)',
             };
         }
     } else {
@@ -88,12 +91,12 @@ function validateCourse(body, isUpdate = false) {
                 };
             }
         }
-        // Nếu có gửi videoid, validate định dạng
-        if (videoid !== undefined && String(videoid).trim()) {
-            if (!YOUTUBE_ID_REGEX.test(String(videoid).trim())) {
+        // Nếu có gửi youtubeId, validate định dạng
+        if (youtubeId !== undefined && String(youtubeId).trim()) {
+            if (!extractVideoId(youtubeId)) {
                 return {
                     ok: false,
-                    error: 'ID Video không hợp lệ (phải đúng 11 ký tự)',
+                    error: 'ID Video không hợp lệ (phải đúng 11 ký tự hoặc link YouTube hợp lệ)',
                 };
             }
         }
