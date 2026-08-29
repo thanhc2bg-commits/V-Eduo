@@ -6,10 +6,17 @@ const {
 } = require('../../utils/token');
 const { validateRegister, validateLogin } = require('../../utils/validators');
 
+function safeReturnTo(value) {
+    if (typeof value !== 'string') return '/';
+    const target = value.trim();
+    if (!target.startsWith('/') || target.startsWith('//')) return '/';
+    return target;
+}
+
 class AuthController {
     // [GET] /auth/register
     showRegister(req, res) {
-        res.render('auth/register');
+        res.render('auth/register', { title: 'Đăng ký' });
     }
 
     // [POST] /auth/register
@@ -72,17 +79,23 @@ class AuthController {
 
     // [GET] /auth/login
     showLogin(req, res) {
-        res.render('auth/login');
+        res.render('auth/login', {
+            title: 'Đăng nhập',
+            returnTo: safeReturnTo(req.query.returnTo),
+        });
     }
 
     // [POST] /auth/login
     login(req, res, next) {
-        const { identifier, password } = req.body;
+        const { identifier, password, returnTo } = req.body;
+        const redirectTarget = safeReturnTo(returnTo);
 
         const { ok, error } = validateLogin(req.body);
         if (!ok) {
             return res.render('auth/login', {
                 error,
+                identifier,
+                returnTo: redirectTarget,
             });
         }
 
@@ -96,6 +109,8 @@ class AuthController {
                 if (!user) {
                     return res.render('auth/login', {
                         error: 'Sai tên đăng nhập hoặc mật khẩu',
+                        identifier,
+                        returnTo: redirectTarget,
                     });
                 }
                 return user
@@ -104,10 +119,12 @@ class AuthController {
                         if (!isMatch) {
                             return res.render('auth/login', {
                                 error: 'Sai tên đăng nhập hoặc mật khẩu',
+                                identifier,
+                                returnTo: redirectTarget,
                             });
                         }
                         return createSessionAndSetCookies(res, user).then(() =>
-                            res.redirect('/'),
+                            res.redirect(redirectTarget),
                         );
                     })
                     .catch(next);

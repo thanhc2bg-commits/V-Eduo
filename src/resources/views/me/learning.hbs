@@ -1,0 +1,48 @@
+<section class="learning-shell" aria-labelledby="learning-title">
+    <header class="learning-header">
+        <div>
+            <p class="learning-header__eyebrow">Không gian học tập</p>
+            <h1 id="learning-title">Khóa học đang học</h1>
+            <p>Tiếp tục từ khóa học gần đây và theo dõi phần bạn đã hoàn thành.</p>
+        </div>
+        <a class="learning-header__discover" href="/courses">Khám phá khóa học</a>
+    </header>
+
+    {{#if learningCourses.length}}
+        <div class="learning-grid">
+            {{#each learningCourses}}
+                <article class="learning-card">
+                    <a class="learning-card__media" href="/courses/{{this.course.slug}}" tabindex="-1" aria-hidden="true">
+                        {{#if this.course.image}}
+                            <img src="{{this.course.image}}" alt="" loading="lazy" width="640" height="360">
+                        {{else}}
+                            <span aria-hidden="true">V</span>
+                        {{/if}}
+                    </a>
+                    <div class="learning-card__body">
+                        <div class="learning-card__status">
+                            {{#if this.isCompleted}}Đã hoàn thành{{else}}Đang học{{/if}}
+                            <span>{{this.progressPercent}}%</span>
+                        </div>
+                        <h2><a href="/courses/{{this.course.slug}}">{{this.course.name}}</a></h2>
+                        <div class="learning-card__track" role="progressbar" aria-label="Tiến độ {{this.course.name}}" aria-valuenow="{{this.progressPercent}}" aria-valuemin="0" aria-valuemax="100">
+                            <span style="width: {{this.progressPercent}}%"></span>
+                        </div>
+                        <p>{{this.completedCount}}/{{this.totalVideos}} bài đã hoàn thành</p>
+                        <a class="learning-card__continue" href="/courses/{{this.course.slug}}">
+                            {{#if this.isCompleted}}Xem lại khóa học{{else}}Tiếp tục học{{/if}}
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+                </article>
+            {{/each}}
+        </div>
+    {{else}}
+        <div class="learning-empty">
+            <span aria-hidden="true">▶</span>
+            <h2>Bạn chưa tham gia khóa học nào</h2>
+            <p>Chọn một khóa học phù hợp, đăng ký và tiến độ sẽ xuất hiện tại đây.</p>
+            <a href="/courses">Tìm khóa học đầu tiên</a>
+        </div>
+    {{/if}}
+</section>

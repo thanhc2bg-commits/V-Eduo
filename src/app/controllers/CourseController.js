@@ -34,6 +34,33 @@ class CourseController {
                 });
             }
 
+            const enrollment = req.user
+                ? await Enrollment.findOne({
+                      userId: req.user.id,
+                      courseId: course._id,
+                  })
+                : null;
+            const isEnrolled = Boolean(enrollment);
+            const isOwner = Boolean(
+                course.createdBy &&
+                    req.user &&
+                    course.createdBy.equals(req.user.id),
+            );
+            const isAdmin = req.user && req.user.role === 'admin';
+
+            // Không tiết lộ khóa học riêng tư và cây bài học cho người lạ.
+            if (
+                course.isPublic === false &&
+                !isOwner &&
+                !isAdmin &&
+                !isEnrolled
+            ) {
+                return res.status(404).render('errors/404', {
+                    layout: false,
+                    error: 'Không tìm thấy khóa học',
+                });
+            }
+
             // Build cây Module → Video (nếu có). Dùng .lean() để trả thẳng plain
             // object, tránh Mongoose Document lẫn vào Handlebars.
             const modulesRaw = await Module.find({ courseId: course._id })
@@ -57,27 +84,11 @@ class CourseController {
             }
 
             // Kiểm tra user đã enroll khóa học này chưa (để UI hiển thị nút enroll đúng trạng thái)
-            const isEnrolled = req.user
-                ? !!(await Enrollment.findOne({
-                      userId: req.user.id,
-                      courseId: course._id,
-                  }))
-                : false;
-
-            const isOwner =
-                course.createdBy &&
-                req.user &&
-                course.createdBy.equals(req.user.id);
-
             // Tiến độ học (Phase 2) — chỉ tính khi user đã enroll
             let completedVideoIds = [];
             let progressPercent = 0;
             let enrollmentStatus = null;
             if (req.user && isEnrolled) {
-                const enrollment = await Enrollment.findOne({
-                    userId: req.user.id,
-                    courseId: course._id,
-                });
                 completedVideoIds = enrollment
                     ? enrollment.completedVideoIds.map(String)
                     : [];
@@ -300,17 +311,21 @@ class CourseController {
             return res.status(400).send(error);
         }
 
-        const formData = req.body;
+        const formData = {
+            name: req.body.name,
+            description: req.body.description,
+            level: req.body.level,
+            certificate:
+                req.body.certificate === 'on' ||
+                req.body.certificate === true,
+        };
         // ✅ Cập nhật: dùng youtubeId thay vì videoid (đã xóa khỏi Course model)
-        const youtubeId = extractVideoId(formData.youtubeId);
-        formData.image = youtubeId
-            ? `https://img.youtube.com/vi/${youtubeId}/sddefault.jpg`
-            : formData.image;
+        const youtubeId = extractVideoId(req.body.youtubeId);
+        if (youtubeId) {
+            formData.image = `https://img.youtube.com/vi/${youtubeId}/sddefault.jpg`;
+        }
         // 🔒 Checkbox không tick → req.body.certificate = undefined → ép về false tường minh
         // (không để field bị bỏ trống khi update — luôn set đúng true/false)
-        formData.certificate =
-            req.body.certificate === 'on' || req.body.certificate === true;
-
         Course.updateOne({ _id: req.params.id }, formData, {
             runValidators: true,
         })

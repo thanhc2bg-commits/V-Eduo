@@ -1,7 +1,7 @@
 <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="fw-bold mb-0">🕘 Lịch sử xem</h2>
-        <a href="/me/courses" class="btn btn-outline-secondary btn-sm">Khóa học của tôi</a>
+        <h1 class="h2 fw-bold mb-0">Lịch sử xem</h1>
+        <a href="/me/learning" class="btn btn-outline-secondary btn-sm">Khóa học đang học</a>
     </div>
 
     {{#if grouped.length}}
@@ -10,7 +10,7 @@
             <h6 class="text-muted text-uppercase small fw-semibold mb-2">{{this.label}}</h6>
             <div class="list-group">
                 {{#each this.items}}
-                <div class="list-group-item d-flex align-items-center gap-3 py-2">
+                {{#if this.courseSlug}}<a href="/courses/{{this.courseSlug}}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">{{else}}<div class="list-group-item d-flex align-items-center gap-3 py-3">{{/if}}
                     <span class="text-primary">🎬</span>
                     <div class="flex-grow-1">
                         <div class="fw-semibold small">{{this.title}}</div>
@@ -19,7 +19,7 @@
                         {{/if}}
                     </div>
                     <span class="text-muted small">{{formatDate this.createdAt}}</span>
-                </div>
+                {{#if this.courseSlug}}</a>{{else}}</div>{{/if}}
                 {{/each}}
             </div>
         </div>
