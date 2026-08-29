@@ -1,41 +1,47 @@
-<div class="container my-5" style="max-width: 420px;">
-    <div class="card shadow-sm">
-        <div class="card-body p-4">
-            <h2 class="text-center mb-4">Đăng ký</h2>
+<section class="auth-shell" aria-labelledby="register-title">
+    <div class="auth-panel">
+        <div class="auth-panel__intro">
+            <span class="site-nav__logo" aria-hidden="true">V</span>
+            <p class="auth-panel__eyebrow">Bắt đầu với V-Connect</p>
+            <h1 id="register-title">Tạo một nơi học tập của riêng bạn.</h1>
+            <p>Lưu tiến độ, ghi chú từng bài và xây dựng lộ trình phù hợp với mục tiêu.</p>
+        </div>
+        <div class="auth-card">
+            <h2>Đăng ký</h2>
 
             {{#if error}}
-            <div class="alert alert-danger py-2" role="alert">{{error}}</div>
+            <div class="auth-alert" role="alert">{{error}}</div>
             {{/if}}
 
             <form method="POST" action="/auth/register">
                 <input type="hidden" name="_csrf" value="{{csrfToken}}">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Họ tên</label>
-                    <input type="text" id="name" name="name" class="form-control"
+                <div class="auth-field">
+                    <label for="name">Họ tên</label>
+                    <input type="text" id="name" name="name"
                         value="{{name}}" required autofocus autocomplete="name">
                 </div>
-                <div class="mb-3">
-                    <label for="username" class="form-label">Tên đăng nhập</label>
-                    <input type="text" id="username" name="username" class="form-control"
+                <div class="auth-field">
+                    <label for="username">Tên đăng nhập</label>
+                    <input type="text" id="username" name="username"
                         value="{{username}}" required autocomplete="username">
                 </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" id="email" name="email" class="form-control"
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email"
                         value="{{email}}" required autocomplete="email">
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Mật khẩu (tối thiểu 8 ký tự)</label>
-                    <input type="password" id="password" name="password" class="form-control"
+                <div class="auth-field">
+                    <label for="password">Mật khẩu <span>Tối thiểu 8 ký tự</span></label>
+                    <input type="password" id="password" name="password"
                         required minlength="8" autocomplete="new-password">
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
+                <button type="submit" class="auth-submit">Tạo tài khoản</button>
             </form>
 
-            <p class="text-center mt-3 mb-0">
+            <p class="auth-switch">
                 Đã có tài khoản?
                 <a href="/auth/login">Đăng nhập</a>
             </p>
         </div>
     </div>
-</div>
+</section>

@@ -1,4 +1,3 @@
-<meta name="csrf-token" content="{{csrfToken}}">
 <script src="/js/escape-html.js"></script>
 
 <div class="cl-page">
@@ -30,13 +29,24 @@
                             </a>
                         {{/if}}
                     {{else}}
-                        <a href="/auth/login" class="cl-btn cl-btn--primary">Đăng nhập để đăng ký</a>
+                        <a href="/auth/login?returnTo=/courses/{{course.slug}}" class="cl-btn cl-btn--primary">Đăng nhập để đăng ký</a>
                     {{/if}}
                 </div>
             </header>
 
             <!-- Player -->
             <div class="cl-player">
+                <div class="cl-player__toolbar">
+                    <div>
+                        <span class="cl-player__eyebrow">Đang xem</span>
+                        <strong id="current-lesson-title">Chọn một bài học</strong>
+                    </div>
+                    <div class="cl-player__nav" aria-label="Điều hướng bài học">
+                        <button type="button" id="btn-prev-video" disabled>← Bài trước</button>
+                        <button type="button" id="btn-next-video" disabled>Bài tiếp →</button>
+                    </div>
+                </div>
+                {{#if initialVideoId}}
                 <div class="cl-player__frame">
                     <iframe id="main-player"
                         src="https://www.youtube.com/embed/{{initialVideoId}}"
@@ -44,6 +54,12 @@
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
+                {{else}}
+                <div class="cl-player__empty">
+                    <strong>Khóa học chưa có bài học</strong>
+                    <p>Nội dung video sẽ xuất hiện tại đây sau khi người tạo cập nhật.</p>
+                </div>
+                {{/if}}
             </div>
 
             <!-- Progress (Phase 2) — chỉ hiển thị khi đã enroll -->
@@ -53,7 +69,7 @@
                     <span class="cl-progress__label">Tiến độ khóa học</span>
                     <span class="cl-progress__pct" id="progress-label">{{progressPercent}}%</span>
                 </div>
-                <div class="cl-progress__track" role="progressbar" aria-valuenow="{{progressPercent}}" aria-valuemin="0" aria-valuemax="100">
+                <div class="cl-progress__track" id="progress-track" role="progressbar" aria-valuenow="{{progressPercent}}" aria-valuemin="0" aria-valuemax="100">
                     <div class="cl-progress__bar" id="progress-bar" style="width: {{progressPercent}}%"></div>
                 </div>
                 {{#if (eq enrollmentStatus 'completed')}}
@@ -89,10 +105,11 @@
             <!-- Ghi chú (Phase 2) -->
             {{#if isEnrolled}}
             <section class="cl-section">
-                <h2 class="cl-section__title">📝 Ghi chú của tôi</h2>
+                <h2 class="cl-section__title">Ghi chú của tôi</h2>
                 <div class="cl-notes">
                     <div class="cl-notes__composer">
-                        <input type="text" class="cl-notes__input" id="note-input" placeholder="Nội dung ghi chú..." maxlength="5000">
+                        <label for="note-input" class="cl-field-label">Ghi chú cho bài học hiện tại</label>
+                        <textarea class="cl-notes__input" id="note-input" placeholder="Viết điều bạn muốn ghi nhớ…" maxlength="5000" rows="3"></textarea>
                         <button class="cl-btn cl-btn--primary" type="button" id="btn-add-note">＋ Thêm ghi chú</button>
                     </div>
                     <div id="note-list" class="cl-notes__list">
@@ -105,7 +122,7 @@
             <!-- Đánh giá (Phase 3) -->
             <section class="cl-section">
                 <div class="cl-reviews__head">
-                    <h2 class="cl-section__title">⭐ Đánh giá khóa học</h2>
+                    <h2 class="cl-section__title">Đánh giá khóa học</h2>
                     <span class="cl-reviews__summary">
                         {{#if reviewCount}}
                             {{avgRating}}/5 ({{reviewCount}} đánh giá)
@@ -119,16 +136,17 @@
                     {{#if isEnrolled}}
                         <!-- Form đánh giá — chỉ user đã enroll -->
                         <div class="cl-reviews__form">
-                            <div class="cl-reviews__stars" id="rating-input">
-                                <button type="button" class="cl-reviews__star" data-value="1" aria-label="Đánh giá 1 sao">☆</button>
-                                <button type="button" class="cl-reviews__star" data-value="2" aria-label="Đánh giá 2 sao">☆</button>
-                                <button type="button" class="cl-reviews__star" data-value="3" aria-label="Đánh giá 3 sao">☆</button>
-                                <button type="button" class="cl-reviews__star" data-value="4" aria-label="Đánh giá 4 sao">☆</button>
-                                <button type="button" class="cl-reviews__star" data-value="5" aria-label="Đánh giá 5 sao">☆</button>
+                            <div class="cl-reviews__stars" id="rating-input" role="group" aria-label="Chọn số sao đánh giá">
+                                <button type="button" class="cl-reviews__star" data-value="1" aria-label="Đánh giá 1 sao" aria-pressed="false">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="2" aria-label="Đánh giá 2 sao" aria-pressed="false">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="3" aria-label="Đánh giá 3 sao" aria-pressed="false">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="4" aria-label="Đánh giá 4 sao" aria-pressed="false">☆</button>
+                                <button type="button" class="cl-reviews__star" data-value="5" aria-label="Đánh giá 5 sao" aria-pressed="false">☆</button>
                             </div>
+                            <label for="review-comment" class="cl-field-label">Nhận xét của bạn</label>
                             <textarea class="cl-reviews__textarea" id="review-comment" rows="2" maxlength="2000"
                                 placeholder="Viết bình luận của bạn...">{{#if myReview}}{{myReview.comment}}{{/if}}</textarea>
-                            <button class="cl-btn cl-btn--primary cl-reviews__submit" id="btn-submit-review">
+                            <button type="button" class="cl-btn cl-btn--primary cl-reviews__submit" id="btn-submit-review">
                                 {{#if myReview}}Cập nhật đánh giá{{else}}Gửi đánh giá{{/if}}
                             </button>
                         </div>
@@ -136,7 +154,7 @@
                         <p class="cl-reviews__hint">Đăng ký khóa học để đánh giá.</p>
                     {{/if}}
                 {{else}}
-                    <p class="cl-reviews__hint"><a href="/auth/login">Đăng nhập</a> để đánh giá khóa học.</p>
+                    <p class="cl-reviews__hint"><a href="/auth/login?returnTo=/courses/{{course.slug}}">Đăng nhập</a> để đánh giá khóa học.</p>
                 {{/if}}
 
                 <!-- Danh sách review -->
@@ -173,14 +191,14 @@
                         <ul class="cl-tree__list">
                             {{#each this.videos}}
                             <li>
-                                <a href="#" class="cl-tree__item video-item"
+                                <button type="button" class="cl-tree__item video-item"
                                     data-youtube-id="{{this.youtubeId}}"
                                     data-video-id="{{this._id}}">
                                     <span class="cl-tree__item-title">{{this.title}}</span>
                                     {{#if (lookup ../noteCounts this._id)}}
                                     <span class="cl-tree__note-count">📝 {{lookup ../noteCounts this._id}}</span>
                                     {{/if}}
-                                </a>
+                                </button>
                             </li>
                             {{/each}}
                         </ul>
@@ -189,7 +207,7 @@
                 </div>
             </div>
             {{else}}
-            <p class="cl-tree__empty">Khóa học này chưa có cấu trúc Module/Video.</p>
+            <p class="cl-tree__empty">Khóa học này chưa có chương hoặc bài học.</p>
             {{/if}}
         </aside>
     </div>
@@ -215,6 +233,20 @@
         const completedSet = new Set([
             {{#each completedVideoIds}}"{{this}}"{{#unless @last}},{{/unless}}{{/each}}
         ]);
+        const $videoItems = $('.video-item');
+        let currentVideoIndex = -1;
+
+        function activateVideoAt(index) {
+            if (index < 0 || index >= $videoItems.length) return;
+            const $item = $videoItems.eq(index);
+            currentVideoIndex = index;
+            $videoItems.removeClass('is-active').attr('aria-current', 'false');
+            $item.addClass('is-active').attr('aria-current', 'true');
+            $('#current-lesson-title').text($item.find('.cl-tree__item-title').text());
+            $('#btn-prev-video').prop('disabled', index === 0);
+            $('#btn-next-video').prop('disabled', index === $videoItems.length - 1);
+            playVideo($item.data('video-id'), $item.data('youtube-id'));
+        }
 
         function updateCompleteUi() {
             const completed = currentVideoId && completedSet.has(currentVideoId);
@@ -222,6 +254,9 @@
             $('#btn-complete-video').toggleClass('d-none', completed || !currentVideoId);
             $('#btn-uncomplete-video').toggleClass('d-none', !completed);
             $('#btn-complete-video').attr('aria-pressed', completed ? 'true' : 'false');
+            if (currentVideoIndex >= 0) {
+                $videoItems.eq(currentVideoIndex).toggleClass('is-complete', Boolean(completed));
+            }
         }
 
         // ---------- Đổi video + ghi watch ----------
@@ -245,6 +280,7 @@
         function updateProgress(percent) {
             $('#progress-bar').css('width', percent + '%');
             $('#progress-label').text(percent + '%');
+            $('#progress-track').attr('aria-valuenow', percent);
         }
 
         // ---------- Complete / Uncomplete ----------
@@ -448,23 +484,19 @@
         });
 
         // ---------- Sự kiện video sidebar ----------
-        $('.video-item').on('click', function (e) {
-            e.preventDefault();
-            const youtubeId = $(this).data('youtube-id');
-            const videoId = $(this).data('video-id');
-            $('.video-item').removeClass('is-active');
-            $(this).addClass('is-active');
-            playVideo(videoId, youtubeId);
+        $videoItems.each(function () {
+            $(this).toggleClass('is-complete', completedSet.has(String($(this).data('video-id'))));
         });
+        $videoItems.on('click', function () {
+            activateVideoAt($videoItems.index(this));
+        });
+        $('#btn-prev-video').on('click', function () { activateVideoAt(currentVideoIndex - 1); });
+        $('#btn-next-video').on('click', function () { activateVideoAt(currentVideoIndex + 1); });
 
         // ---------- Khởi tạo: video đầu tiên ----------
         const firstVideo = $('.video-item').first();
         if (firstVideo.length) {
-            firstVideo.addClass('is-active');
-            playVideo(
-                firstVideo.data('video-id'),
-                firstVideo.data('youtube-id')
-            );
+            activateVideoAt(0);
         } else {
             // Course cũ chưa migrate — không có video tree
             $('#btn-complete-video, #btn-uncomplete-video').addClass('d-none');
@@ -505,6 +537,7 @@
                 const val = $(this).data('value');
                 $(this).text(val <= selectedRating ? '★' : '☆');
                 $(this).toggleClass('is-active', val <= selectedRating);
+                $(this).attr('aria-pressed', val === selectedRating ? 'true' : 'false');
             });
         }
         renderStars();

@@ -1,4 +1,5 @@
 node_modules/
+# CSS được tạo bằng `npm run build`; giữ source SCSS trong Git.
 src/public/css/
 .env
 .cline

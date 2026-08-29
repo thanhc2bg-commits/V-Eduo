@@ -1,20 +1,20 @@
 {
   "name": "v-connect",
   "version": "1.0.0",
-  "description": "",
+  "description": "Nền tảng học trực tuyến V-Connect dành cho người học Việt Nam.",
   "keywords": [
     "nodejs",
-    "blog",
-    "nodejs",
-    "blog"
+    "education",
+    "e-learning",
+    "express"
   ],
-  "homepage": "https://github.com/thanhc2bg-commits/V-Connect#readme",
+  "homepage": "https://github.com/thanhc2bg-commits/V-Eduo#readme",
   "bugs": {
-    "url": "https://github.com/thanhc2bg-commits/V-Connect/issues"
+    "url": "https://github.com/thanhc2bg-commits/V-Eduo/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thanhc2bg-commits/V-Connect.git"
+    "url": "git+https://github.com/thanhc2bg-commits/V-Eduo.git"
   },
   "license": "ISC",
   "author": "phungdn",
@@ -22,9 +22,12 @@
   "main": "src/index.js",
   "scripts": {
     "beautiful": "lint-staged",
-    "watch": "sass --watch src/resources/scss:src/public/css",
-    "start": "nodemon --inspect src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:css",
+    "build:css": "sass --no-source-map --style=compressed src/resources/scss/app.scss src/public/css/app.css",
+    "watch": "sass --watch --no-source-map src/resources/scss/app.scss:src/public/css/app.css",
+    "dev": "nodemon --inspect src/index.js",
+    "start": "node src/index.js",
+    "test": "npm run build && node scripts/check-project.js",
     "create-admin": "node scripts/create-admin.js",
     "migrate-roadmap-v2": "node scripts/migrate-roadmap-v2.js",
     "prepare": "husky"

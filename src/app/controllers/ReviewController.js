@@ -9,6 +9,16 @@ const {
     multipleMongooseToObject,
 } = require('../../utils/mongoose');
 
+async function canViewCourse(course, user) {
+    if (course.isPublic !== false) return true;
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (course.createdBy && course.createdBy.equals(user.id)) return true;
+    return Boolean(
+        await Enrollment.exists({ userId: user.id, courseId: course._id }),
+    );
+}
+
 class ReviewController {
     // [POST] /api/courses/:courseId/reviews
     // Tạo/cập nhật đánh giá — upsert (1 user chỉ 1 review/course).
@@ -46,6 +56,11 @@ class ReviewController {
             // Check course tồn tại (Vấn đề E mục 9.2)
             const course = await Course.findById(courseObjectId);
             if (!course) {
+                return res
+                    .status(404)
+                    .json({ error: 'Khóa học không tồn tại' });
+            }
+            if (!(await canViewCourse(course, req.user))) {
                 return res
                     .status(404)
                     .json({ error: 'Khóa học không tồn tại' });
@@ -134,6 +149,11 @@ class ReviewController {
                     .status(404)
                     .json({ error: 'Khóa học không tồn tại' });
             }
+            if (!(await canViewCourse(course, req.user))) {
+                return res
+                    .status(404)
+                    .json({ error: 'Khóa học không tồn tại' });
+            }
 
             const reviews = await CourseReview.find({
                 courseId: courseObjectId,
@@ -179,6 +199,11 @@ class ReviewController {
 
             const course = await Course.findById(courseObjectId);
             if (!course) {
+                return res
+                    .status(404)
+                    .json({ error: 'Khóa học không tồn tại' });
+            }
+            if (!(await canViewCourse(course, req.user))) {
                 return res
                     .status(404)
                     .json({ error: 'Khóa học không tồn tại' });

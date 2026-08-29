@@ -1,17 +1,65 @@
 const Course = require('../models/Course');
 const Roadmap = require('../models/Roadmap');
+const Enrollment = require('../models/Enrollment');
 const { multipleMongooseToObject } = require('../../utils/mongoose');
+const { getTotalVideosForCourse } = require('../../utils/progress');
 
 class MeController {
     myCourses(req, res, next) {
         Course.find({ createdBy: req.user.id })
             .then((courses) => {
                 res.render('me/my-course', {
-                    title: 'Khóa học của tôi',
+                    title: 'Khóa học tôi tạo',
                     courses: multipleMongooseToObject(courses),
                 });
             })
             .catch(next);
+    }
+
+    async learning(req, res, next) {
+        try {
+            const enrollments = await Enrollment.find({ userId: req.user.id })
+                .sort({ updatedAt: -1 })
+                .populate('courseId')
+                .lean();
+
+            const learningCourses = await Promise.all(
+                enrollments
+                    .filter((enrollment) => enrollment.courseId)
+                    .map(async (enrollment) => {
+                        const course = enrollment.courseId;
+                        const totalVideos = await getTotalVideosForCourse(
+                            course._id,
+                        );
+                        const completedCount =
+                            enrollment.completedVideoIds?.length || 0;
+                        const progressPercent =
+                            totalVideos > 0
+                                ? Math.min(
+                                      100,
+                                      Math.round(
+                                          (completedCount / totalVideos) * 100,
+                                      ),
+                                  )
+                                : 0;
+
+                        return {
+                            course,
+                            completedCount,
+                            totalVideos,
+                            progressPercent,
+                            isCompleted: enrollment.status === 'completed',
+                        };
+                    }),
+            );
+
+            res.render('me/learning', {
+                title: 'Khóa học đang học',
+                learningCourses,
+            });
+        } catch (error) {
+            next(error);
+        }
     }
     storedCourses(req, res, next) {
         Promise.all([Course.find({}), Course.countDocumentsDeleted()])
@@ -38,6 +86,7 @@ class MeController {
         Roadmap.find({ createdBy: req.user.id })
             .then((roadmaps) => {
                 res.render('me/my-roadmap', {
+                    title: 'Lộ trình tôi tạo',
                     roadmaps: multipleMongooseToObject(roadmaps),
                 });
             })

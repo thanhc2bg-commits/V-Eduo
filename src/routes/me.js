@@ -9,6 +9,7 @@ const { requireAuth, requireRole } = require('../app/middlewares/auth');
 const adminOnly = [requireAuth, requireRole('admin')];
 
 router.get('/roadmaps', requireAuth, meController.myRoadmaps);
+router.get('/learning', requireAuth, meController.learning);
 router.get('/courses', requireAuth, meController.myCourses);
 router.get('/courses/stored', adminOnly, meController.storedCourses);
 router.get('/courses/trash', adminOnly, meController.trashCourses);

@@ -152,6 +152,23 @@ class EnrollmentController {
             const hasMore = activities.length > limit;
             const pageItems = activities.slice(0, limit);
 
+            const courseIds = [
+                ...new Set(
+                    pageItems
+                        .map((item) => item.courseId && item.courseId.toString())
+                        .filter(Boolean),
+                ),
+            ];
+            const courses = await Course.find({ _id: { $in: courseIds } })
+                .select('slug')
+                .lean();
+            const courseSlugMap = new Map(
+                courses.map((course) => [
+                    course._id.toString(),
+                    course.slug,
+                ]),
+            );
+
             // Group theo ngày: Hôm nay / Hôm qua / Ngày cụ thể
             const grouped = [];
             const now = new Date();
@@ -187,6 +204,9 @@ class EnrollmentController {
                     courseName:
                         (item.metadata && item.metadata.courseName) || '',
                     videoId: item.videoId ? item.videoId.toString() : null,
+                    courseSlug: item.courseId
+                        ? courseSlugMap.get(item.courseId.toString())
+                        : null,
                     createdAt: item.createdAt,
                 });
             }

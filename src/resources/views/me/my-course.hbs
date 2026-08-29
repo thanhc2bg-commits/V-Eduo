@@ -1,10 +1,9 @@
-<link rel="stylesheet" href="/css/me-dashboard.css">
 <div class="me-shell">
   <header class="me-header">
     <div>
-      <span class="me-header__eyebrow">Workbench</span>
-      <h1>Khóa học của tôi</h1>
-      <p class="me-header__desc">Quản lý danh sách khóa học, cấu trúc bài học và thông tin xuất bản.</p>
+      <span class="me-header__eyebrow">Không gian sáng tạo</span>
+      <h1>Khóa học tôi tạo</h1>
+      <p class="me-header__desc">Quản lý nội dung, cấu trúc bài học và trạng thái xuất bản.</p>
     </div>
     <div class="me-header__actions">
       <a href="/courses/create" class="me-btn me-btn--primary">Thêm khóa học</a>
@@ -42,9 +41,18 @@
 </div>
 {{> delete-modal}}
 <script>
-.ready(function(){
-  var courseId;
-  .on('show.bs.modal',function(e){var b=;courseId=b.data('id');.text(b.data('course-name')||'');});
-  .on('click',function(){.attr('action','/courses/'+courseId+'?_method=DELETE');.submit();});
+$(document).ready(function () {
+  let courseId;
+  $('#delete-course-modal').on('show.bs.modal', function (event) {
+    const button = $(event.relatedTarget);
+    courseId = button.data('id');
+    $('#delete-course-name').text(button.data('course-name') || '');
+  });
+  $('#btn-delete-course').on('click', function () {
+    if (!courseId) return;
+    $('#delete-course-form')
+      .attr('action', '/courses/' + courseId + '?_method=DELETE')
+      .trigger('submit');
+  });
 });
 </script>

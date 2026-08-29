@@ -4,7 +4,7 @@ const Session = require('../app/models/Session');
 const User = require('../app/models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const ACCESS_TOKEN_TTL = '10s';
+const ACCESS_TOKEN_TTL = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // 14 ngày
 
 // Sign access token JWT (ngắn hạn)

@@ -1,16 +1,15 @@
 <header class="site-nav" role="banner">
     <div class="site-nav__bar">
         <!-- Brand -->
-        <a class="site-nav__brand" href="/" aria-label="V-Conect — trang chủ">
-            <img src="/img/gemini.svg" alt="" width="30" height="24" class="site-nav__logo">
-            <span class="site-nav__wordmark">V-Conect</span>
+        <a class="site-nav__brand" href="/" aria-label="V-Connect — trang chủ">
+            <span class="site-nav__logo" aria-hidden="true">V</span>
+            <span class="site-nav__wordmark">V-Connect</span>
         </a>
 
         <!-- Center links (desktop) -->
         <nav class="site-nav__links" aria-label="Điều hướng chính">
                     <a class="site-nav__link" href="/courses">Khóa học</a>
                     <a class="site-nav__link" href="/roadmaps">Lộ trình</a>
-                    <a class="site-nav__link" href="/news">Tin tức</a>
                 </nav>
 
         <!-- Right actions (desktop) -->
@@ -18,17 +17,17 @@
             {{#if user}}
                 <div class="site-nav__user dropdown">
                     <button class="site-nav__user-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="site-nav__avatar">
+                        <span class="site-nav__avatar site-nav__avatar--fallback" aria-hidden="true">V</span>
                         <span class="site-nav__user-name">{{user.name}}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end site-nav__dropdown">
                                             <li><a class="dropdown-item" href="/courses/create">Tạo khóa học</a></li>
                                             <li><a class="dropdown-item" href="/roadmaps/create">Tạo lộ trình</a></li>
                                             <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/me/courses">Khóa học của tôi</a></li>
-                    <li><a class="dropdown-item" href="/me/roadmaps">Lộ trình của tôi</a></li>
+                    <li><a class="dropdown-item" href="/me/learning">Khóa học đang học</a></li>
+                    <li><a class="dropdown-item" href="/me/courses">Khóa học tôi tạo</a></li>
+                    <li><a class="dropdown-item" href="/me/roadmaps">Lộ trình tôi tạo</a></li>
                     <li><a class="dropdown-item" href="/me/watch-history">Lịch sử xem</a></li>
-                    <li><a class="dropdown-item" href="/me/stored/news">Bài đăng của tôi</a></li>
                                             {{#if (eq user.role 'admin')}}
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li><a class="dropdown-item fw-bold text-danger" href="/me/courses/stored">Quản trị hệ thống</a></li>
@@ -61,19 +60,18 @@
             <nav class="site-nav__mobile-nav" aria-label="Điều hướng di động">
                 <a class="site-nav__mobile-link" href="/courses">Khóa học</a>
                 <a class="site-nav__mobile-link" href="/roadmaps">Lộ trình</a>
-                <a class="site-nav__mobile-link" href="/news">Tin tức</a>
                 <div class="site-nav__mobile-divider"></div>
                 {{#if user}}
                     <div class="site-nav__mobile-user">
-                        <img src="https://yt3.ggpht.com/JpOpDLM0oht1BvfhQbKtrdnwAcbahRcS3UGaYCyySubui_-sfIRe0xfyHorzS4MdiaDukQIX=s88-c-k-c0x00ffffff-no-rj" alt="" class="site-nav__avatar">
+                        <span class="site-nav__avatar site-nav__avatar--fallback" aria-hidden="true">V</span>
                         <span class="site-nav__mobile-user-name">{{user.name}}</span>
                     </div>
-                    <a class="site-nav__mobile-link" href="/me/courses">Khóa học của tôi</a>
-                    <a class="site-nav__mobile-link" href="/me/roadmaps">Lộ trình của tôi</a>
+                    <a class="site-nav__mobile-link" href="/me/learning">Khóa học đang học</a>
+                    <a class="site-nav__mobile-link" href="/me/courses">Khóa học tôi tạo</a>
+                    <a class="site-nav__mobile-link" href="/me/roadmaps">Lộ trình tôi tạo</a>
                     <a class="site-nav__mobile-link" href="/me/watch-history">Lịch sử xem</a>
                     <a class="site-nav__mobile-link" href="/courses/create">Tạo khóa học</a>
                     <a class="site-nav__mobile-link" href="/roadmaps/create">Tạo lộ trình</a>
-                    <a class="site-nav__mobile-link" href="/me/stored/news">Bài đăng của tôi</a>
                     {{#if (eq user.role 'admin')}}
                         <a class="site-nav__mobile-link text-danger fw-bold" href="/me/courses/stored">Quản trị hệ thống</a>
                     {{/if}}

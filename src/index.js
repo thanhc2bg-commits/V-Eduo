@@ -7,6 +7,7 @@ const methodOverride = require('method-override');
 const cookieParser = require('cookie-parser');
 const handlebars = require('express-handlebars');
 const helmet = require('helmet');
+const mongoose = require('mongoose');
 const port = process.env.PORT || 3000;
 const route = require('./routes');
 const db = require('./config/db');
@@ -26,10 +27,7 @@ if (!process.env.MONGODB_URI) {
 // - rate-limit đọc đúng IP thật của user (X-Forwarded-For)
 // - CORS same-origin so sánh đúng host
 // - cookie secure hoạt động khi proxy chuyển HTTPS → HTTP nội bộ
-app.set('trust proxy', 1);
-
-//connect to db
-db.connect();
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 
 // Bảo mật HTTP headers (CSP cấu hình cho phép oEmbed YouTube + thumbnail)
 app.use(
@@ -56,6 +54,15 @@ app.use(
 
 // CORS whitelist (từ CORS_ORIGINS env)
 app.use(corsMiddleware);
+
+// Endpoint cho nền tảng hosting kiểm tra tiến trình và trạng thái MongoDB.
+app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/readyz', (req, res) => {
+    const ready = mongoose.connection.readyState === 1;
+    res.status(ready ? 200 : 503).json({
+        status: ready ? 'ready' : 'not-ready',
+    });
+});
 
 // app.get('/', (req, res) => {
 //     res.render('home');
@@ -163,6 +170,26 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+async function start() {
+    await db.connect();
+    const server = app.listen(port, () => {
+        console.log(`V-Connect listening on port ${port}`);
+    });
+
+    async function shutdown(signal) {
+        console.log(`${signal}: shutting down`);
+        server.close(async () => {
+            await mongoose.disconnect();
+            process.exit(0);
+        });
+        setTimeout(() => process.exit(1), 10000).unref();
+    }
+
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
+}
+
+start().catch((error) => {
+    console.error('Không thể khởi động ứng dụng:', error);
+    process.exit(1);
 });

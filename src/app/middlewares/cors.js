@@ -34,8 +34,12 @@ const corsOptionsFunction = (req, callback) => {
         });
     }
 
-    // Whitelist rỗng hoặc '*' → cho phép tất cả (chỉ dùng khi dev/local)
-    if (!origins.length || origins.includes('*')) {
+    // Chỉ dev/local mới được phép dùng wildcard. Production mặc định từ chối
+    // cross-origin nếu chưa cấu hình whitelist; same-origin vẫn được phép ở trên.
+    if (
+        process.env.NODE_ENV !== 'production' &&
+        (!origins.length || origins.includes('*'))
+    ) {
         return callback(null, {
             origin: true,
             credentials: true,

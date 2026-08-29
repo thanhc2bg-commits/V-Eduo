@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const Controller = require('../app/controllers/CourseController');
+const SiteController = require('../app/controllers/SiteController');
 const ModuleController = require('../app/controllers/ModuleController');
 const { requireAuth, requireRole } = require('../app/middlewares/auth');
 const { checkOwnership } = require('../app/middlewares/checkOwnership');
@@ -10,6 +11,9 @@ const Course = require('../app/models/Course');
 
 // Các route quản trị — cần đăng nhập + role admin
 const adminOnly = [requireAuth, requireRole('admin')];
+
+// Catalogue công khai. Phải đặt trước GET /:slug.
+router.get('/', SiteController.index);
 
 router.get('/create', requireAuth, Controller.create);
 

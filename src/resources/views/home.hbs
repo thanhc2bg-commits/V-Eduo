@@ -1,16 +1,52 @@
-<section class="catalogue" aria-label="Danh sách khóa học">
+<section class="catalogue-hero" aria-labelledby="catalogue-title">
+    <div class="catalogue-hero__copy">
+        <p class="catalogue-hero__eyebrow">Học theo nhịp độ của bạn</p>
+        <h1 id="catalogue-title">Tìm khóa học phù hợp và bắt đầu ngay.</h1>
+        <p>Khám phá nội dung theo trình độ, lưu tiến độ và quay lại đúng bài học đang xem.</p>
+    </div>
+    <form class="catalogue-search" action="/courses" method="GET" role="search">
+        <div class="catalogue-search__field">
+            <label for="course-search">Tìm theo tên hoặc nội dung</label>
+            <input id="course-search" name="q" type="search" value="{{q}}" placeholder="Ví dụ: JavaScript, thiết kế web…">
+        </div>
+        <div class="catalogue-search__field catalogue-search__field--level">
+            <label for="course-level">Trình độ</label>
+            <select id="course-level" name="level">
+                <option value="">Tất cả trình độ</option>
+                <option value="Cơ bản" {{#if (eq selectedLevel 'Cơ bản')}}selected{{/if}}>Cơ bản</option>
+                <option value="Trung bình" {{#if (eq selectedLevel 'Trung bình')}}selected{{/if}}>Trung bình</option>
+                <option value="Nâng cao" {{#if (eq selectedLevel 'Nâng cao')}}selected{{/if}}>Nâng cao</option>
+            </select>
+        </div>
+        <button class="catalogue-search__submit" type="submit">Tìm khóa học</button>
+        {{#if hasFilters}}
+            <a class="catalogue-search__reset" href="/courses">Xóa bộ lọc</a>
+        {{/if}}
+    </form>
+</section>
+
+<section class="catalogue" aria-labelledby="course-list-title">
     <header class="catalogue__head">
-        <h1 class="catalogue__label">Khóa học</h1>
-        <p class="catalogue__count">{{courses.length}} khóa học</p>
+        <div>
+            <h2 class="catalogue__label" id="course-list-title">Khóa học nổi bật</h2>
+            {{#if hasFilters}}<p class="catalogue__context">Kết quả phù hợp với bộ lọc của bạn</p>{{/if}}
+        </div>
+        <p class="catalogue__count" aria-live="polite">{{courses.length}} khóa học</p>
     </header>
 
+    {{#if courses.length}}
     <div class="catalogue__grid">
         {{#each courses}}
         <article class="course-card">
-            <div class="course-card__media">
-                <img src="{{this.image}}" alt="" loading="lazy" width="640" height="480">
-            </div>
+            <a class="course-card__media" href="/courses/{{this.slug}}" tabindex="-1" aria-hidden="true">
+                {{#if this.image}}
+                    <img src="{{this.image}}" alt="" loading="lazy" width="640" height="480">
+                {{else}}
+                    <span class="course-card__placeholder" aria-hidden="true">V</span>
+                {{/if}}
+            </a>
             <div class="course-card__body">
+                {{#if this.level}}<span class="course-card__level">{{this.level}}</span>{{/if}}
                 <h3 class="course-card__title">
                     <a href="/courses/{{this.slug}}">{{this.name}}</a>
                 </h3>
@@ -25,4 +61,12 @@
         </article>
         {{/each}}
     </div>
+    {{else}}
+        <div class="catalogue-empty">
+            <span class="catalogue-empty__mark" aria-hidden="true">⌕</span>
+            <h3>Chưa tìm thấy khóa học phù hợp</h3>
+            <p>Thử một từ khóa ngắn hơn hoặc xem lại tất cả trình độ.</p>
+            <a href="/courses">Xem tất cả khóa học</a>
+        </div>
+    {{/if}}
 </section>
