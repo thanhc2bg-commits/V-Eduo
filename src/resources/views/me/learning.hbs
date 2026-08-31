@@ -1,48 +1,87 @@
-<section class="learning-shell" aria-labelledby="learning-title">
-    <header class="learning-header">
-        <div>
-            <p class="learning-header__eyebrow">Không gian học tập</p>
-            <h1 id="learning-title">Khóa học đang học</h1>
-            <p>Tiếp tục từ khóa học gần đây và theo dõi phần bạn đã hoàn thành.</p>
+<section class="me-shell" aria-labelledby="learning-title">
+    <header class="me-head">
+        <div class="me-head__copy">
+            <p class="me-head__eyebrow">Không gian học tập</p>
+            <h1 class="me-head__title" id="learning-title">Khóa học đang học</h1>
+            <p class="me-head__desc">Tiếp tục từ khóa học gần đây và theo dõi phần bạn đã hoàn thành.</p>
         </div>
-        <a class="learning-header__discover" href="/courses">Khám phá khóa học</a>
+        <div class="me-head__actions">
+            <a class="me-btn me-btn--primary" href="/courses">Khám phá khóa học</a>
+        </div>
     </header>
 
     {{#if learningCourses.length}}
-        <div class="learning-grid">
+        {{#with learningCourses.[0]}}
+        <article class="me-continue">
+            <div class="me-continue__copy">
+                <p class="me-continue__eyebrow">{{#if this.isCompleted}}Đã hoàn thành{{else}}Tiếp tục học tập{{/if}}</p>
+                <h2 class="me-continue__title">
+                    <a href="/courses/{{this.course.slug}}">{{this.course.name}}</a>
+                </h2>
+                <p class="me-continue__desc">{{this.completedCount}}/{{this.totalVideos}} bài đã hoàn thành · {{this.progressPercent}}% tiến độ</p>
+            </div>
+            <div class="me-continue__side">
+                <div class="me-continue__stat" aria-hidden="true">{{this.progressPercent}}<small>%</small></div>
+                <div class="me-continue__track" role="progressbar" aria-label="Tiến độ {{this.course.name}}" aria-valuenow="{{this.progressPercent}}" aria-valuemin="0" aria-valuemax="100">
+                    <span style="width: {{this.progressPercent}}%"></span>
+                </div>
+                <a class="me-btn me-btn--primary" href="/courses/{{this.course.slug}}">
+                    {{#if this.isCompleted}}Xem lại khóa học{{else}}Tiếp tục học{{/if}}
+                </a>
+            </div>
+        </article>
+        {{/with}}
+
+        {{#if learningCourses.[1]}}
+        <div class="me-ledger" aria-label="Khóa học khác">
+            <div class="me-ledger__head">Khóa học khác</div>
             {{#each learningCourses}}
-                <article class="learning-card">
-                    <a class="learning-card__media" href="/courses/{{this.course.slug}}" tabindex="-1" aria-hidden="true">
+                {{#unless @first}}
+                <article class="me-ledger__row">
+                    <a class="me-ledger__thumb" href="/courses/{{this.course.slug}}" tabindex="-1" aria-hidden="true">
                         {{#if this.course.image}}
-                            <img src="{{this.course.image}}" alt="" loading="lazy" width="640" height="360">
+                            <img src="{{this.course.image}}" alt="" loading="lazy" width="160" height="90">
                         {{else}}
                             <span aria-hidden="true">V</span>
                         {{/if}}
                     </a>
-                    <div class="learning-card__body">
-                        <div class="learning-card__status">
-                            {{#if this.isCompleted}}Đã hoàn thành{{else}}Đang học{{/if}}
-                            <span>{{this.progressPercent}}%</span>
+                    <div class="me-ledger__main">
+                        <h3 class="me-ledger__name">
+                            <a href="/courses/{{this.course.slug}}">{{this.course.name}}</a>
+                        </h3>
+                        <div class="me-ledger__meta">
+                            <span>{{this.completedCount}}/{{this.totalVideos}} bài</span>
+                            {{#if this.isCompleted}}
+                                <span class="me-badge me-badge--success">Đã hoàn thành</span>
+                            {{else}}
+                                <span class="me-badge">Đang học</span>
+                            {{/if}}
                         </div>
-                        <h2><a href="/courses/{{this.course.slug}}">{{this.course.name}}</a></h2>
-                        <div class="learning-card__track" role="progressbar" aria-label="Tiến độ {{this.course.name}}" aria-valuenow="{{this.progressPercent}}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="me-ledger__track" role="progressbar" aria-label="Tiến độ {{this.course.name}}" aria-valuenow="{{this.progressPercent}}" aria-valuemin="0" aria-valuemax="100">
                             <span style="width: {{this.progressPercent}}%"></span>
                         </div>
-                        <p>{{this.completedCount}}/{{this.totalVideos}} bài đã hoàn thành</p>
-                        <a class="learning-card__continue" href="/courses/{{this.course.slug}}">
-                            {{#if this.isCompleted}}Xem lại khóa học{{else}}Tiếp tục học{{/if}}
-                            <span aria-hidden="true">→</span>
+                    </div>
+                    <div class="me-ledger__side">
+                        <a class="me-btn me-btn--ghost me-btn--sm" href="/courses/{{this.course.slug}}">
+                            {{#if this.isCompleted}}Xem lại{{else}}Tiếp tục{{/if}} <span aria-hidden="true">→</span>
                         </a>
                     </div>
                 </article>
+                {{/unless}}
             {{/each}}
         </div>
+        {{/if}}
     {{else}}
-        <div class="learning-empty">
-            <span aria-hidden="true">▶</span>
-            <h2>Bạn chưa tham gia khóa học nào</h2>
-            <p>Chọn một khóa học phù hợp, đăng ký và tiến độ sẽ xuất hiện tại đây.</p>
-            <a href="/courses">Tìm khóa học đầu tiên</a>
+        <div class="me-empty">
+            <span class="me-empty__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                </svg>
+            </span>
+            <h2 class="me-empty__title">Bạn chưa tham gia khóa học nào</h2>
+            <p class="me-empty__subtitle">Chọn một khóa học phù hợp, đăng ký và tiến độ sẽ xuất hiện tại đây.</p>
+            <a class="me-btn me-btn--primary" href="/courses">Tìm khóa học đầu tiên</a>
         </div>
     {{/if}}
 </section>

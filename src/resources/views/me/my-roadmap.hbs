@@ -1,80 +1,68 @@
-<div class="mt-4">
-    <div class="page-header">
-        <h2>Lộ trình của tôi</h2>
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="/roadmaps/create" class="btn btn-primary btn-sm btn-soft">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Tạo lộ trình
-            </a>
+<div class="me-shell">
+    <header class="me-head">
+        <div class="me-head__copy">
+            <span class="me-head__eyebrow">Không gian sáng tạo</span>
+            <h1 class="me-head__title">Lộ trình của tôi</h1>
+            <p class="me-head__desc">Xây dựng lộ trình học tập theo từng bước và chia sẻ với người học.</p>
         </div>
-    </div>
+        <div class="me-head__actions">
+            <a href="/roadmaps/create" class="me-btn me-btn--primary">Tạo lộ trình</a>
+        </div>
+    </header>
 
-    <div class="course-table-wrap">
-        <table class="table course-table table-borderless align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">STT</th>
-                    <th scope="col">Tên lộ trình</th>
-                    <th scope="col">Công khai</th>
-                    <th scope="col">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{#each roadmaps}}
-                <tr>
-                    <th scope="row">{{sum @index 1}}</th>
-                    <td class="course-name">
-                        <a href="/roadmaps/{{this.slug}}" class="text-decoration-none course-name-link">{{this.name}}</a>
-                    </td>
-                    <td>
-                        {{#if this.isPublic}}
-                        <span class="badge-level" data-level="Cơ bản">Có</span>
-                        {{else}}
-                        <span class="badge-level">Không</span>
-                        {{/if}}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1 flex-wrap">
-                        <a href="/roadmaps/{{this._id}}/edit" class="btn btn-soft btn-manage btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                            </svg>
-                            Quản lý
-                        </a>
-                        <button type="button" class="btn btn-soft btn-delete btn-sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-roadmap-name="{{this.name}}">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                            Xóa
-                        </button>
-                        </div>
-                    </td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="4">
-                        <div class="empty-state text-center">
-                            <div class="empty-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
-                                </svg>
+    <div class="me-card">
+        <div class="me-card__head">
+            <span class="me-card__title">Danh sách lộ trình</span>
+            <span class="me-card__count">{{roadmaps.length}} lộ trình</span>
+        </div>
+        <div class="me-table-wrap">
+            <table class="me-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Tên lộ trình</th>
+                        <th scope="col">Công khai</th>
+                        <th scope="col" class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each roadmaps}}
+                    <tr>
+                        <td>
+                            <a href="/roadmaps/{{this.slug}}" class="me-table__name">{{this.name}}</a>
+                        </td>
+                        <td>
+                            {{#if this.isPublic}}
+                            <span class="me-badge me-badge--success">Công khai</span>
+                            {{else}}
+                            <span class="me-badge me-badge--neutral">Riêng tư</span>
+                            {{/if}}
+                        </td>
+                        <td>
+                            <div class="me-table__actions me-table__actions--end">
+                                <a href="/roadmaps/{{this._id}}/edit" class="me-btn me-btn--ghost me-btn--sm">Quản lý</a>
+                                <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-roadmap-name="{{this.name}}">Xóa</button>
                             </div>
-                            <div class="empty-title">Chưa có lộ trình nào</div>
-                            <div class="empty-subtitle">Hãy tạo lộ trình học tập đầu tiên của bạn.</div>
-                            <a href="/roadmaps/create" class="btn btn-primary btn-soft btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                </svg>
-                                Tạo lộ trình
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {{/each}}
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="3">
+                            <div class="me-empty">
+                                <span class="me-empty__icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                                    </svg>
+                                </span>
+                                <div class="me-empty__title">Chưa có lộ trình nào</div>
+                                <div class="me-empty__subtitle">Hãy tạo lộ trình học tập đầu tiên của bạn.</div>
+                                <a href="/roadmaps/create" class="me-btn me-btn--primary">Tạo lộ trình</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

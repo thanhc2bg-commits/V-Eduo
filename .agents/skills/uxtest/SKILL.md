@@ -1,6 +1,8 @@
 ---
 name: uxtest
-description: Đóng vai một người dùng khó tính, ghét công nghệ để tìm và phân loại các điểm nghẽn về UX (UX pain points) trên hệ thống.
+description: >-
+  Đóng vai một người dùng khó tính, ghét công nghệ để tìm và phân loại các điểm
+  nghẽn về UX (UX pain points) trên hệ thống.
 ---
 
 # uxtest (Adversarial UX Test)

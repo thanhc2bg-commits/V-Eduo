@@ -1,41 +1,58 @@
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h2 fw-bold mb-0">Lịch sử xem</h1>
-        <a href="/me/learning" class="btn btn-outline-secondary btn-sm">Khóa học đang học</a>
-    </div>
+<div class="me-shell">
+    <header class="me-head">
+        <div class="me-head__copy">
+            <span class="me-head__eyebrow">Hoạt động gần đây</span>
+            <h1 class="me-head__title">Lịch sử xem</h1>
+            <p class="me-head__desc">Các video bạn đã mở gần đây, sắp xếp theo thời gian.</p>
+        </div>
+        <div class="me-head__actions">
+            <a href="/me/learning" class="me-btn me-btn--ghost">Khóa học đang học</a>
+        </div>
+    </header>
 
     {{#if grouped.length}}
-        {{#each grouped}}
-        <div class="mb-4">
-            <h6 class="text-muted text-uppercase small fw-semibold mb-2">{{this.label}}</h6>
-            <div class="list-group">
-                {{#each this.items}}
-                {{#if this.courseSlug}}<a href="/courses/{{this.courseSlug}}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">{{else}}<div class="list-group-item d-flex align-items-center gap-3 py-3">{{/if}}
-                    <span class="text-primary">🎬</span>
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold small">{{this.title}}</div>
-                        {{#if this.courseName}}
-                        <div class="text-muted small">Khóa: {{this.courseName}}</div>
+        <div class="wh-days">
+            {{#each grouped}}
+            <section class="wh-day" aria-label="{{this.label}}">
+                <h2 class="wh-day__label">{{this.label}}</h2>
+                <div class="wh-list">
+                    {{#each this.items}}
+                        {{#if this.courseSlug}}
+                        <a class="wh-item" href="/courses/{{this.courseSlug}}">
+                        {{else}}
+                        <div class="wh-item">
                         {{/if}}
-                    </div>
-                    <span class="text-muted small">{{formatDate this.createdAt}}</span>
-                {{#if this.courseSlug}}</a>{{else}}</div>{{/if}}
-                {{/each}}
-            </div>
+                            <span class="wh-item__dot" aria-hidden="true"></span>
+                            <span class="wh-item__main">
+                                <span class="wh-item__title">{{this.title}}</span>
+                                {{#if this.courseName}}
+                                <span class="wh-item__course">Khóa: {{this.courseName}}</span>
+                                {{/if}}
+                            </span>
+                            <span class="wh-item__date">{{formatDate this.createdAt}}</span>
+                        {{#if this.courseSlug}}</a>{{else}}</div>{{/if}}
+                    {{/each}}
+                </div>
+            </section>
+            {{/each}}
         </div>
-        {{/each}}
 
         {{#if pagination.hasMore}}
-        <div class="text-center mt-3">
-            <a href="/me/watch-history?page={{sum pagination.page 1}}" class="btn btn-outline-primary btn-sm">
-                Xem thêm
-            </a>
+        <div class="wh-more">
+            <a href="/me/watch-history?page={{sum pagination.page 1}}" class="me-btn me-btn--ghost">Xem thêm lịch sử</a>
         </div>
         {{/if}}
     {{else}}
-        <div class="text-center text-muted py-5">
-            <p class="mb-2">Bạn chưa xem video nào.</p>
-            <a href="/courses" class="btn btn-primary btn-sm">Khám phá khóa học</a>
+        <div class="me-empty">
+            <span class="me-empty__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                </svg>
+            </span>
+            <h2 class="me-empty__title">Bạn chưa xem video nào</h2>
+            <p class="me-empty__subtitle">Lịch sử các video đã xem sẽ xuất hiện tại đây.</p>
+            <a href="/courses" class="me-btn me-btn--primary">Khám phá khóa học</a>
         </div>
     {{/if}}
 </div>

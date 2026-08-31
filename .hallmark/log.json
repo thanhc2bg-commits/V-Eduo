@@ -5,5 +5,14 @@
         "theme": "Coral",
         "enrichment": "none",
         "brief": "V-Connect learner-first UI/UX and deployment redesign"
+    },
+    {
+        "date": "2026-08-29",
+        "macrostructure": "Workbench (family)",
+        "theme": "Coral",
+        "enrichment": "none",
+        "designed-as-app": true,
+        "scope": "me/* area (learning, my-course, my-roadmap, stored-course, trash-course, watch-history)",
+        "brief": "Multi-page redesign of me area per design.md — continue desk, table kit, timeline fingerprints"
     }
 ]

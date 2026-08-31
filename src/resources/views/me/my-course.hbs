@@ -1,43 +1,72 @@
 <div class="me-shell">
-  <header class="me-header">
-    <div>
-      <span class="me-header__eyebrow">Không gian sáng tạo</span>
-      <h1>Khóa học tôi tạo</h1>
-      <p class="me-header__desc">Quản lý nội dung, cấu trúc bài học và trạng thái xuất bản.</p>
+    <header class="me-head">
+        <div class="me-head__copy">
+            <span class="me-head__eyebrow">Không gian sáng tạo</span>
+            <h1 class="me-head__title">Khóa học tôi tạo</h1>
+            <p class="me-head__desc">Quản lý nội dung, cấu trúc bài học và trạng thái xuất bản.</p>
+        </div>
+        <div class="me-head__actions">
+            <a href="/courses/create" class="me-btn me-btn--primary">Thêm khóa học</a>
+        </div>
+    </header>
+
+    <div class="me-card">
+        <div class="me-card__head">
+            <span class="me-card__title">Danh sách khóa học</span>
+            <span class="me-card__count">{{courses.length}} khóa học</span>
+        </div>
+        <div class="me-table-wrap">
+            <table class="me-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Tên khóa học</th>
+                        <th scope="col">Trình độ</th>
+                        <th scope="col">Ngày tạo</th>
+                        <th scope="col" class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each courses}}
+                    <tr>
+                        <td>
+                            <a href="/courses/{{this.slug}}" class="me-table__name">{{this.name}}</a>
+                        </td>
+                        <td>
+                            {{#if this.level}}
+                            <span class="me-badge me-badge--neutral">{{this.level}}</span>
+                            {{else}}
+                            <span class="me-badge me-badge--neutral">Chưa cập nhật</span>
+                            {{/if}}
+                        </td>
+                        <td class="me-table__muted">{{formatDate this.createdAt}}</td>
+                        <td>
+                            <div class="me-table__actions me-table__actions--end">
+                                <a href="/courses/{{this._id}}/manage" class="me-btn me-btn--ghost me-btn--sm">Quản lý</a>
+                                <a href="/courses/{{this._id}}/edit" class="me-btn me-btn--ghost me-btn--sm">Sửa</a>
+                                <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-course-name="{{this.name}}">Xóa</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4">
+                            <div class="me-empty">
+                                <span class="me-empty__icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                    </svg>
+                                </span>
+                                <div class="me-empty__title">Chưa có khóa học nào</div>
+                                <div class="me-empty__subtitle">Hãy thêm khóa học đầu tiên của bạn để bắt đầu.</div>
+                                <a href="/courses/create" class="me-btn me-btn--primary">Thêm khóa học</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="me-header__actions">
-      <a href="/courses/create" class="me-btn me-btn--primary">Thêm khóa học</a>
-    </div>
-  </header>
-  <div class="me-card">
-    <div class="me-table-wrap">
-      <table class="me-table">
-        <thead><tr><th>#</th><th>Tên khóa học</th><th>Trình độ</th><th>Ngày tạo</th><th class="text-end">Thao tác</th></tr></thead>
-        <tbody>
-          {{#each courses}}
-          <tr>
-            <td class="me-table__index">{{sum @index 1}}</td>
-            <td><a href="/courses/{{this.slug}}" class="me-table__name">{{this.name}}</a></td>
-            <td>{{#if this.level}}<span class="me-badge me-badge--neutral">{{this.level}}</span>{{else}}<span class="me-badge me-badge--neutral">Chưa cập nhật</span>{{/if}}</td>
-            <td class="me-table__muted">{{formatDate this.createdAt}}</td>
-            <td><div class="me-table__actions">
-              <a href="/courses/{{this._id}}/manage" class="me-btn me-btn--ghost me-btn--sm">Quản lý</a>
-              <a href="/courses/{{this._id}}/edit" class="me-btn me-btn--ghost me-btn--sm">Sửa</a>
-              <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-course-name="{{this.name}}">Xóa</button>
-            </div></td>
-          </tr>
-          {{else}}
-          <tr><td colspan="5"><div class="me-empty">
-            <div class="me-empty__icon">📚</div>
-            <div class="me-empty__title">Chưa có khóa học nào</div>
-            <div class="me-empty__subtitle">Hãy thêm khóa học đầu tiên của bạn để bắt đầu.</div>
-            <a href="/courses/create" class="me-btn me-btn--primary me-btn--sm">Thêm khóa học</a>
-          </div></td></tr>
-          {{/each}}
-        </tbody>
-      </table>
-    </div>
-  </div>
 </div>
 {{> delete-modal}}
 <script>
