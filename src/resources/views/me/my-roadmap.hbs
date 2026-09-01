@@ -20,7 +20,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Tên lộ trình</th>
-                        <th scope="col">Công khai</th>
+                        <th scope="col">Trạng thái</th>
                         <th scope="col" class="text-end">Thao tác</th>
                     </tr>
                 </thead>
@@ -31,8 +31,8 @@
                             <a href="/roadmaps/{{this.slug}}" class="me-table__name">{{this.name}}</a>
                         </td>
                         <td>
-                            {{#if this.isPublic}}
-                            <span class="me-badge me-badge--success">Công khai</span>
+                            {{#if this.status}}
+                            <span class="me-badge {{this.status.cls}}">{{this.status.text}}</span>
                             {{else}}
                             <span class="me-badge me-badge--neutral">Riêng tư</span>
                             {{/if}}
@@ -40,7 +40,7 @@
                         <td>
                             <div class="me-table__actions me-table__actions--end">
                                 <a href="/roadmaps/{{this._id}}/edit" class="me-btn me-btn--ghost me-btn--sm">Quản lý</a>
-                                <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-course-modal" data-id="{{this._id}}" data-roadmap-name="{{this.name}}">Xóa</button>
+                                <button type="button" class="me-btn me-btn--danger-ghost me-btn--sm" data-bs-toggle="modal" data-bs-target="#delete-roadmap-modal" data-id="{{this._id}}" data-roadmap-name="{{this.name}}">Xóa</button>
                             </div>
                         </td>
                     </tr>
@@ -66,10 +66,42 @@
     </div>
 </div>
 
-{{> delete-modal}}
+<!-- Modal xác nhận xóa lộ trình (riêng cho trang roadmap) -->
+<div class="modal fade" id="delete-roadmap-modal" tabindex="-1" aria-labelledby="delete-roadmap-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 1rem;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="delete-roadmap-modal-label">Xóa lộ trình</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                Bạn có chắc chắn muốn xóa lộ trình "<span id="delete-roadmap-name"></span>" không? Các khóa học đang được gắn trong lộ trình sẽ được gỡ liên kết.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-soft" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger btn-soft" id="btn-delete-roadmap">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form để submit DELETE -->
+<form id="delete-roadmap-form" method="POST">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+</form>
+
+<!-- Toast container cho flash message -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    <div id="flashToast" class="toast align-items-center text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="flashToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+        </div>
+    </div>
+</div>
 
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
         // Hiển thị flash message từ query param (?updated=1)
         const params = new URLSearchParams(window.location.search);
         let flashMsg = null;
@@ -84,17 +116,19 @@
         var roadmapId;
 
         // Khi modal hiển thị, lấy id + tên lộ trình từ nút Xóa được click
-        $('#delete-course-modal').on('show.bs.modal', function(event) {
+        $('#delete-roadmap-modal').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
             roadmapId = button.data('id');
             var roadmapName = button.data('roadmap-name');
-            $('#delete-course-name').text(roadmapName || '');
+            $('#delete-roadmap-name').text(roadmapName || '');
         });
 
         // Khi click nút Xóa trong modal, submit form DELETE
-        $('#btn-delete-course').on('click', function() {
-            $('#delete-course-form').attr('action', '/roadmaps/' + roadmapId + '?_method=DELETE');
-            $('#delete-course-form').submit();
+        $('#btn-delete-roadmap').on('click', function () {
+            if (!roadmapId) return;
+            $('#delete-roadmap-form')
+                .attr('action', '/roadmaps/' + roadmapId + '?_method=DELETE')
+                .trigger('submit');
         });
     });
 </script>

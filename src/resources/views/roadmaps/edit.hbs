@@ -1,153 +1,292 @@
 
-<div class="container mt-4">
-    <div class="roadmap-builder-page">
-        <div class="roadmap-builder-head">
-            <h2>Update Learning Roadmap</h2>
-            <p>Tuy chinh noi dung, trang thai xuat ban va thu tu khoa hoc trong lo trinh.</p>
+<div class="roadmap-page">
+    <header class="roadmap-page__head">
+        <div class="roadmap-page__copy">
+            <span class="roadmap-page__eyebrow">Không gian sáng tạo</span>
+            <h1 class="roadmap-page__title">Chỉnh sửa lộ trình</h1>
+            <p class="roadmap-page__desc">Điều chỉnh nội dung, trạng thái xuất bản và thứ tự khóa học trong lộ trình.</p>
+        </div>
+        <div class="roadmap-page__actions">
+            <a href="/me/roadmaps" class="roadmap-btn roadmap-btn--ghost">Lộ trình của tôi</a>
+            {{#if (eq status.key 'public')}}
+            <a href="/roadmaps/{{roadmap.slug}}" class="roadmap-btn roadmap-btn--ghost">Xem trang lộ trình</a>
+            {{/if}}
+        </div>
+    </header>
+
+    {{#if errorMessage}}
+    <div class="roadmap-alert" role="alert" id="form-error" tabindex="-1">{{errorMessage}}</div>
+    {{/if}}
+
+    <form action="/roadmaps/{{roadmap._id}}?_method=PUT" method="POST" class="roadmap-form" novalidate>
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
+
+        <div class="roadmap-form__main">
+            <section class="roadmap-section" aria-labelledby="section-basic">
+                <h2 id="section-basic">Thông tin cơ bản</h2>
+
+                <div class="roadmap-field {{#if fieldErrors.name}}has-error{{/if}}">
+                    <label for="name">Tên lộ trình <span>(bắt buộc)</span></label>
+                    <input type="text" id="name" name="name" value="{{oldValues.name}}" maxlength="255" placeholder="Ví dụ: Lập trình Web Full-Stack từ Zero đến Hero" required aria-describedby="{{#if fieldErrors.name}}name-error{{else}}name-hint{{/if}}">
+                    {{#if fieldErrors.name}}<p class="roadmap-field__error" id="name-error">{{fieldErrors.name}}</p>{{else}}<p class="roadmap-field__hint" id="name-hint">Tên hiển thị của lộ trình trên toàn nền tảng.</p>{{/if}}
+                </div>
+
+                <div class="roadmap-field {{#if fieldErrors.description}}has-error{{/if}}">
+                    <label for="description">Mô tả chi tiết</label>
+                    <textarea id="description" name="description" rows="4" maxlength="2000" placeholder="Mô tả mục tiêu và kết quả đầu ra của lộ trình...">{{oldValues.description}}</textarea>
+                    {{#if fieldErrors.description}}<p class="roadmap-field__error" id="description-error">{{fieldErrors.description}}</p>{{else}}<p class="roadmap-field__hint" id="description-hint">Giúp người học hiểu lộ trình này dành cho ai và đạt được gì.</p>{{/if}}
+                </div>
+
+                <div class="roadmap-field--grid2">
+                    <div class="roadmap-field {{#if fieldErrors.category}}has-error{{/if}}">
+                        <label for="category">Danh mục</label>
+                        <select id="category" name="category">
+                            <option value="">Chọn danh mục</option>
+                            <option value="Khoa học máy tính" {{#if (eq oldValues.category 'Khoa học máy tính')}}selected{{/if}}>Khoa học máy tính</option>
+                            <option value="Lập trình Web" {{#if (eq oldValues.category 'Lập trình Web')}}selected{{/if}}>Lập trình Web</option>
+                            <option value="Khoa học dữ liệu" {{#if (eq oldValues.category 'Khoa học dữ liệu')}}selected{{/if}}>Khoa học dữ liệu</option>
+                            <option value="Lập trình Di động" {{#if (eq oldValues.category 'Lập trình Di động')}}selected{{/if}}>Lập trình Di động</option>
+                            <option value="DevOps" {{#if (eq oldValues.category 'DevOps')}}selected{{/if}}>DevOps</option>
+                        </select>
+                        {{#if fieldErrors.category}}<p class="roadmap-field__error" id="category-error">{{fieldErrors.category}}</p>{{/if}}
+                    </div>
+
+                    <div class="roadmap-field {{#if fieldErrors.difficulty}}has-error{{/if}}">
+                        <label for="difficulty">Độ khó</label>
+                        <select id="difficulty" name="difficulty">
+                            <option value="">Chọn độ khó</option>
+                            <option value="Mới bắt đầu" {{#if (eq oldValues.difficulty 'Mới bắt đầu')}}selected{{/if}}>Mới bắt đầu</option>
+                            <option value="Trung cấp" {{#if (eq oldValues.difficulty 'Trung cấp')}}selected{{/if}}>Trung cấp</option>
+                            <option value="Nâng cao" {{#if (eq oldValues.difficulty 'Nâng cao')}}selected{{/if}}>Nâng cao</option>
+                        </select>
+                        {{#if fieldErrors.difficulty}}<p class="roadmap-field__error" id="difficulty-error">{{fieldErrors.difficulty}}</p>{{/if}}
+                    </div>
+                </div>
+            </section>
+
+            <section class="roadmap-section" aria-labelledby="section-cover">
+                <h2 id="section-cover">Ảnh bìa</h2>
+                <div class="roadmap-field {{#if fieldErrors.coverImage}}has-error{{/if}}">
+                    <label for="coverImage">Đường dẫn ảnh bìa (URL)</label>
+                    <input type="url" id="coverImage" name="coverImage" value="{{oldValues.coverImage}}" maxlength="500" placeholder="https://..." aria-describedby="cover-help">
+                    <p class="roadmap-field__hint" id="cover-help">Dán URL hình ảnh (http hoặc https) để làm ảnh bìa lộ trình.</p>
+                    {{#if fieldErrors.coverImage}}<p class="roadmap-field__error" id="cover-image-error">{{fieldErrors.coverImage}}</p>{{/if}}
+                </div>
+                <div class="roadmap-cover-preview" id="coverPreview" aria-live="polite">
+                    <div class="roadmap-cover-preview__empty">Ảnh bìa sẽ hiển thị tại đây.</div>
+                </div>
+            </section>
         </div>
 
-        <form action="/roadmaps/{{roadmap._id}}?_method=PUT" method="POST" class="roadmap-builder-grid mb-3">
-            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+        <div class="roadmap-form__side">
+            <section class="roadmap-section" aria-labelledby="section-visibility">
+                <h2 id="section-visibility">Quyền hiển thị</h2>
+                <fieldset class="roadmap-visibility">
+                    <legend>Chọn chế độ hiển thị của lộ trình</legend>
 
-            <div class="rb-card">
-                <h3>Roadmap Details</h3>
-
-                <div class="mb-3">
-                    <label class="rb-label" for="name">Roadmap Title</label>
-                    <input type="text" class="form-control rb-control" id="name" name="name" value="{{roadmap.name}}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="rb-label" for="description">Description</label>
-                    <textarea class="form-control rb-control" id="description" name="description" rows="4">{{roadmap.description}}</textarea>
-                </div>
-
-                <div class="rb-grid-2">
-                    <div>
-                        <label class="rb-label" for="category">Category</label>
-                        <input type="text" class="form-control rb-control" id="category" name="category" value="{{roadmap.category}}" placeholder="Vi du: Computer Science">
-                    </div>
-                    <div>
-                        <label class="rb-label" for="difficulty">Difficulty Level</label>
-                        <input type="text" class="form-control rb-control" id="difficulty" name="difficulty" value="{{roadmap.difficulty}}" placeholder="Vi du: Beginner Friendly">
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-grid gap-3">
-                <div class="rb-card">
-                    <h3>Publish Settings</h3>
-                    <div class="rb-radio-group mb-2">
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="public" {{#if roadmap.visibility}}{{#if (eq roadmap.visibility 'public')}}checked{{/if}}{{else}}{{#if roadmap.isPublic}}checked{{/if}}{{/if}}>
-                            <span><strong>Public</strong><span>Hien thi voi tat ca hoc vien.</span></span>
-                        </label>
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="private" {{#if roadmap.visibility}}{{#if (eq roadmap.visibility 'private')}}checked{{/if}}{{else}}{{#unless roadmap.isPublic}}checked{{/unless}}{{/if}}>
-                            <span><strong>Private</strong><span>Chi ai co lien ket moi xem duoc.</span></span>
-                        </label>
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="draft" {{#if roadmap.visibility}}{{#if (eq roadmap.visibility 'draft')}}checked{{/if}}{{/if}}>
-                            <span><strong>Draft</strong><span>Luu nhap, chua hien thi ra ngoai.</span></span>
-                        </label>
-                    </div>
-
-                    <div>
-                        {{#if (eq roadmap.visibility 'public')}}
-                        <span class="rb-status-pill" data-type="public">Public</span>
-                        {{/if}}
-                        {{#if (eq roadmap.visibility 'private')}}
-                        <span class="rb-status-pill" data-type="private">Private</span>
-                        {{/if}}
-                        {{#if (eq roadmap.visibility 'draft')}}
-                        <span class="rb-status-pill" data-type="draft">Draft</span>
-                        {{/if}}
-                    </div>
-
-                    <div class="rb-actions">
-                        <button type="submit" class="rb-btn-primary">Save Roadmap Details</button>
-                        <a href="/roadmaps/{{roadmap.slug}}" class="btn rb-btn-ghost">View Public Page</a>
-                    </div>
-                </div>
-
-                <div class="rb-card">
-                    <h3>Cover Image</h3>
-                    <label class="rb-label" for="coverImage">Image URL</label>
-                    <input type="url" class="form-control rb-control mb-2" id="coverImage" name="coverImage" value="{{roadmap.coverImage}}" placeholder="https://...">
-                    <div class="rb-cover-preview" id="coverPreview">
-                        {{#if roadmap.coverImage}}
-                        <img src="{{roadmap.coverImage}}" alt="Cover preview">
-                        {{else}}
-                        <div class="rb-cover-empty">Preview anh bia se hien thi o day.</div>
-                        {{/if}}
-                    </div>
-                </div>
-            </div>
-        </form>
-
-        <form action="/roadmaps/{{roadmap._id}}/courses?_method=PUT" method="POST" class="rb-card mb-3" id="curriculumForm">
-            <input type="hidden" name="_csrf" value="{{csrfToken}}">
-            <div class="rb-section-head">
-                <div>
-                    <h4>Curriculum Builder</h4>
-                    <p class="text-muted mb-0 small">Keo tha de doi thu tu. Chi cac muc duoc chon moi xuat hien trong roadmap.</p>
-                </div>
-                <button type="submit" class="btn rb-btn-primary">Save Curriculum</button>
-            </div>
-
-            {{#if courses.length}}
-            <ul class="rb-curriculum-list" id="roadmapCourseList">
-                {{#each courses}}
-                <li class="rb-course-item" data-id="{{this._id}}">
-                    <button type="button" class="rb-handle" aria-label="Drag to reorder">::</button>
-                    <label class="mb-0 d-flex flex-column" for="course-{{this._id}}">
-                        <span class="rb-course-name">{{this.name}}</span>
-                        <span class="rb-course-meta">Khoa hoc ca nhan</span>
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="public" {{#if (eq oldValues.visibility 'public')}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Công khai</strong>
+                            <span>Hiển thị với tất cả học viên trong danh mục lộ trình.</span>
+                        </span>
                     </label>
-                    <input type="checkbox" class="form-check-input rb-course-check" name="courseIds" value="{{this._id}}" id="course-{{this._id}}" {{#if this.assigned}}checked{{/if}}>
-                </li>
-                {{/each}}
-            </ul>
-            {{else}}
-            <div class="rb-empty">Ban chua co khoa hoc nao de them vao roadmap.</div>
-            {{/if}}
-        </form>
 
-        <form action="/roadmaps/{{roadmap._id}}?_method=DELETE" method="POST" class="rb-card" onsubmit="return confirm('Xoa lo trinh nay?');">
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="private" {{#if (eq oldValues.visibility 'private')}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Riêng tư</strong>
+                            <span>Chỉ chủ sở hữu và quản trị viên được xem.</span>
+                        </span>
+                    </label>
+
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="draft" {{#if (eq oldValues.visibility 'draft')}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Bản nháp</strong>
+                            <span>Lưu nháp, chưa hiển thị ra ngoài cho đến khi bạn xuất bản.</span>
+                        </span>
+                    </label>
+                </fieldset>
+
+                <div class="roadmap-status {{#if (eq status.key 'public')}}roadmap-status--public{{else if (eq status.key 'draft')}}roadmap-status--draft{{else}}roadmap-status--private{{/if}}">{{status.text}}</div>
+            </section>
+
+            <section class="roadmap-section" aria-labelledby="section-actions">
+                <h2 id="section-actions">Hành động</h2>
+                <div class="roadmap-actions">
+                    <button type="submit" class="roadmap-btn roadmap-btn--primary">Lưu thay đổi</button>
+                    <a href="/me/roadmaps" class="roadmap-btn roadmap-btn--ghost">Quay lại</a>
+                </div>
+            </section>
+        </div>
+    </form>
+
+    <form action="/roadmaps/{{roadmap._id}}/courses?_method=PUT" method="POST" class="roadmap-curriculum" id="curriculumForm" aria-labelledby="curriculum-title">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
+        <div class="roadmap-curriculum__head">
+            <div>
+                <h2 id="curriculum-title">Khóa học trong lộ trình</h2>
+                <p>Chọn khóa học tham gia lộ trình và sắp xếp theo thứ tự mong muốn. Có thể kéo thả bằng chuột hoặc dùng nút lên/xuống.</p>
+            </div>
+            <button type="submit" class="roadmap-btn roadmap-btn--primary">Lưu thứ tự</button>
+        </div>
+
+        {{#if courses.length}}
+        <ul class="roadmap-curriculum__list" id="roadmapCourseList">
+            {{#each courses}}
+            <li class="roadmap-curriculum__item" data-id="{{this._id}}" draggable="true">
+                <span class="roadmap-curriculum__order" aria-hidden="true">{{sum @index 1}}</span>
+                <label class="roadmap-curriculum__checkbox">
+                    <input type="checkbox" name="courseIds" value="{{this._id}}" id="course-{{this._id}}" {{#if this.assigned}}checked{{/if}}>
+                    <span class="roadmap-curriculum__name">
+                        <strong>{{this.name}}</strong>
+                        <span>Khóa học cá nhân</span>
+                    </span>
+                </label>
+                <button type="button" class="roadmap-curriculum__move" data-action="up" aria-label="Di chuyển {{this.name}} lên trước">↑</button>
+                <button type="button" class="roadmap-curriculum__move" data-action="down" aria-label="Di chuyển {{this.name}} xuống sau">↓</button>
+            </li>
+            {{/each}}
+        </ul>
+        {{else}}
+        <div class="roadmap-curriculum__empty">
+            <strong>Chưa có khóa học nào để thêm vào lộ trình.</strong>
+            <span>Hãy tạo khóa học trước, sau đó quay lại đây để gắn chúng vào lộ trình.</span>
+            <a href="/courses/create" class="roadmap-btn roadmap-btn--primary">Tạo khóa học</a>
+        </div>
+        {{/if}}
+    </form>
+
+    <section class="roadmap-danger" aria-labelledby="danger-title">
+        <div>
+            <h2 id="danger-title">Vùng nguy hiểm</h2>
+            <p>Xóa lộ trình sẽ gỡ toàn bộ liên kết khóa học khỏi lộ trình này. Thao tác không thể hoàn tác.</p>
+        </div>
+        <form action="/roadmaps/{{roadmap._id}}?_method=DELETE" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa lộ trình「{{roadmap.name}}」? Toàn bộ liên kết khóa học sẽ bị gỡ.');">
             <input type="hidden" name="_csrf" value="{{csrfToken}}">
-            <h3>Danger Zone</h3>
-            <p class="text-muted mb-2">Hanh dong nay khong the hoan tac. Toan bo lien ket roadmap hien tai se bi xoa.</p>
-            <button type="submit" class="btn rb-btn-danger">Delete This Roadmap</button>
+            <button type="submit" class="roadmap-btn roadmap-btn--danger-ghost">Xóa lộ trình</button>
         </form>
-    </div>
+    </section>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.6/Sortable.min.js"></script>
 <script>
-    (function() {
+    (function () {
+        // ---- Cover preview (DOM API an toàn, không dùng innerHTML với URL người dùng) ----
         const coverInput = document.getElementById('coverImage');
         const preview = document.getElementById('coverPreview');
 
         function renderCover() {
             if (!coverInput || !preview) return;
             const value = (coverInput.value || '').trim();
+            preview.replaceChildren();
             if (!value) {
-                preview.innerHTML = '<div class="rb-cover-empty">Preview anh bia se hien thi o day.</div>';
+                const empty = document.createElement('div');
+                empty.className = 'roadmap-cover-preview__empty';
+                empty.textContent = 'Ảnh bìa sẽ hiển thị tại đây.';
+                preview.appendChild(empty);
                 return;
             }
-            preview.innerHTML = '<img src="' + value + '" alt="Cover preview" onerror="this.parentElement.innerHTML=\'<div class=\'rb-cover-empty\'>Khong the tai anh, hay kiem tra lai URL.</div>\'">';
+            if (!/^https?:\/\//i.test(value)) {
+                const error = document.createElement('div');
+                error.className = 'roadmap-cover-preview__error';
+                error.textContent = 'Đường dẫn không hợp lệ — chỉ chấp nhận URL http:// hoặc https://.';
+                preview.appendChild(error);
+                return;
+            }
+            const img = document.createElement('img');
+            img.alt = 'Ảnh bìa lộ trình';
+            img.loading = 'lazy';
+            img.src = value;
+            img.addEventListener('error', function () {
+                preview.replaceChildren();
+                const error = document.createElement('div');
+                error.className = 'roadmap-cover-preview__error';
+                error.textContent = 'Không thể tải ảnh từ đường dẫn này, hãy kiểm tra lại URL.';
+                preview.appendChild(error);
+            });
+            preview.appendChild(img);
         }
 
         if (coverInput) {
             coverInput.addEventListener('input', renderCover);
+            renderCover();
         }
 
+        // Sau khi submit lỗi: focus vào thông báo lỗi đầu tiên.
+        const alertBox = document.getElementById('form-error');
+        if (alertBox) {
+            alertBox.focus();
+        }
+
+        // ---- Curriculum Builder: nút lên/xuống (bàn phím) + kéo thả (bổ sung) ----
         const list = document.getElementById('roadmapCourseList');
-        if (list && window.Sortable) {
-            Sortable.create(list, {
-                animation: 150,
-                handle: '.rb-handle',
+        if (!list) return;
+
+        function renumber() {
+            var items = list.querySelectorAll('.roadmap-curriculum__item');
+            items.forEach(function (item, index) {
+                var order = item.querySelector('.roadmap-curriculum__order');
+                if (order) order.textContent = index + 1;
+                var up = item.querySelector('[data-action="up"]');
+                var down = item.querySelector('[data-action="down"]');
+                if (up) up.disabled = index === 0;
+                if (down) down.disabled = index === items.length - 1;
             });
         }
+
+        list.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var item = button.closest('.roadmap-curriculum__item');
+            if (!item) return;
+            if (button.getAttribute('data-action') === 'up' && item.previousElementSibling) {
+                item.parentNode.insertBefore(item, item.previousElementSibling);
+            } else if (button.getAttribute('data-action') === 'down' && item.nextElementSibling) {
+                item.parentNode.insertBefore(item.nextElementSibling, item);
+            }
+            renumber();
+        });
+
+        // Native HTML5 drag & drop — chỉ là tiện ích bổ sung.
+        var dragItem = null;
+        list.addEventListener('dragstart', function (event) {
+            var item = event.target.closest('.roadmap-curriculum__item');
+            if (!item) return;
+            dragItem = item;
+            item.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+        });
+        list.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        });
+        list.addEventListener('drop', function (event) {
+            event.preventDefault();
+            if (!dragItem) return;
+            var target = event.target.closest('.roadmap-curriculum__item');
+            if (target && target !== dragItem) {
+                var rect = target.getBoundingClientRect();
+                var after = event.clientY > rect.top + rect.height / 2;
+                if (after) {
+                    target.parentNode.insertBefore(dragItem, target.nextElementSibling);
+                } else {
+                    target.parentNode.insertBefore(dragItem, target);
+                }
+            }
+            dragItem.classList.remove('is-dragging');
+            dragItem = null;
+            renumber();
+        });
+        list.addEventListener('dragend', function () {
+            if (dragItem) {
+                dragItem.classList.remove('is-dragging');
+                dragItem = null;
+            }
+            renumber();
+        });
+
+        // Thứ tự DOM hiện tại chính là thứ tự gửi lên server (order của form control).
+        renumber();
     })();
 </script>
