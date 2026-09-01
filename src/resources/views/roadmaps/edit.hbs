@@ -122,7 +122,7 @@
         </div>
     </form>
 
-        <form action="/roadmaps/{{roadmap._id}}/courses?_method=PUT" method="POST" class="roadmap-curriculum" id="curriculumForm">
+    <form action="/roadmaps/{{roadmap._id}}/courses?_method=PUT" method="POST" class="roadmap-curriculum" id="curriculumForm" aria-labelledby="curriculum-title">
         <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <div class="roadmap-curriculum__head">
             <div>
@@ -136,6 +136,7 @@
         <ul class="roadmap-curriculum__list" id="roadmapCourseList">
             {{#each courses}}
             <li class="roadmap-curriculum__item" data-id="{{this._id}}" draggable="true">
+                <span class="roadmap-curriculum__order" aria-hidden="true">{{sum @index 1}}</span>
                 <label class="roadmap-curriculum__checkbox">
                     <input type="checkbox" name="courseIds" value="{{this._id}}" id="course-{{this._id}}" {{#if this.assigned}}checked{{/if}}>
                     <span class="roadmap-curriculum__name">
@@ -143,7 +144,6 @@
                         <span>Khóa học cá nhân</span>
                     </span>
                 </label>
-                <span class="roadmap-curriculum__order" aria-hidden="true">{{sum @index 1}}</span>
                 <button type="button" class="roadmap-curriculum__move" data-action="up" aria-label="Di chuyển {{this.name}} lên trước">↑</button>
                 <button type="button" class="roadmap-curriculum__move" data-action="down" aria-label="Di chuyển {{this.name}} xuống sau">↓</button>
             </li>

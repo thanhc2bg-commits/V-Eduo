@@ -2912,6 +2912,7 @@ a.wh-item:hover .wh-item__title {
 .roadmap-curriculum__item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: 'order course up down';
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-xs);
@@ -2927,6 +2928,7 @@ a.wh-item:hover .wh-item__title {
 
 .roadmap-curriculum__checkbox {
     display: inline-flex;
+    grid-area: course;
     align-items: center;
     gap: var(--space-xs);
     min-width: 0;
@@ -2966,10 +2968,12 @@ a.wh-item:hover .wh-item__title {
 
 .roadmap-curriculum__order {
     display: inline-flex;
+    grid-area: order;
     align-items: center;
     justify-content: center;
-    min-width: 1.75rem;
+    width: 1.75rem;
     height: 1.75rem;
+    justify-self: start;
     color: var(--color-muted);
     font-size: var(--text-xs);
     font-weight: 700;
@@ -2995,6 +2999,14 @@ a.wh-item:hover .wh-item__title {
     transition:
         background-color var(--dur-short) var(--ease-out),
         color var(--dur-short) var(--ease-out);
+}
+
+.roadmap-curriculum__move[data-action='up'] {
+    grid-area: up;
+}
+
+.roadmap-curriculum__move[data-action='down'] {
+    grid-area: down;
 }
 
 .roadmap-curriculum__move:hover:not(:disabled) {
@@ -3094,9 +3106,22 @@ a.wh-item:hover .wh-item__title {
     width: 100%;
     height: 100%;
     place-items: center;
+    color: transparent;
+    background: var(--color-paper-2);
+    font-size: 0;
+}
+
+.roadmap-card__placeholder::before,
+.roadmap-hero__placeholder::before {
+    content: 'V';
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
     color: var(--color-accent-ink);
     background: var(--color-accent);
-    font-size: var(--text-2xl);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-lg);
     font-weight: 700;
 }
 
@@ -3218,6 +3243,8 @@ a.wh-item:hover .wh-item__title {
     aspect-ratio: 16 / 9;
     place-items: center;
     overflow: hidden;
+    background: var(--color-paper-2);
+    border: 1px solid var(--color-rule);
     border-radius: var(--radius-sm);
 }
 
@@ -3232,10 +3259,9 @@ a.wh-item:hover .wh-item__title {
     width: 100%;
     height: 100%;
     place-items: center;
-    color: var(--color-accent-ink);
-    background: var(--color-accent);
-    font-size: var(--text-2xl);
-    font-weight: 700;
+    color: transparent;
+    background: var(--color-paper-2);
+    font-size: 0;
 }
 
 .roadmap-hero__copy {
@@ -3448,7 +3474,11 @@ a.wh-item:hover .wh-item__title {
     }
 
     .roadmap-curriculum__item {
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            'order course course course'
+            '. . up down';
+        align-items: start;
     }
 
     .roadmap-curriculum__move {
