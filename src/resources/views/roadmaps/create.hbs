@@ -1,100 +1,167 @@
 
-<div class="container mt-4">
-    <div class="roadmap-builder-page">
-                <div class="roadmap-builder-head">
-            <h2>Tạo Lộ Trình Học Tập</h2>
-            <p>Thiết kế lộ trình học có cấu trúc rõ ràng bằng cách kết nối nhiều khóa học.</p>
+<div class="roadmap-page">
+    <header class="roadmap-page__head">
+        <div class="roadmap-page__copy">
+            <span class="roadmap-page__eyebrow">Không gian sáng tạo</span>
+            <h1 class="roadmap-page__title">Tạo lộ trình học tập</h1>
+            <p class="roadmap-page__desc">Thiết kế một lộ trình học có cấu trúc rõ ràng bằng cách kết nối nhiều khóa học theo thứ tự hợp lý.</p>
+        </div>
+        <div class="roadmap-page__actions">
+            <a href="/me/roadmaps" class="roadmap-btn roadmap-btn--ghost">Lộ trình của tôi</a>
+        </div>
+    </header>
+
+    {{#if errorMessage}}
+    <div class="roadmap-alert" role="alert" id="form-error" tabindex="-1">{{errorMessage}}</div>
+    {{/if}}
+
+    <form action="/roadmaps" method="POST" class="roadmap-form" novalidate>
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
+
+        <div class="roadmap-form__main">
+            <section class="roadmap-section" aria-labelledby="section-basic">
+                <h2 id="section-basic">Thông tin cơ bản</h2>
+
+                <div class="roadmap-field {{#if fieldErrors.name}}has-error{{/if}}">
+                    <label for="name">Tên lộ trình <span>(bắt buộc)</span></label>
+                    <input type="text" id="name" name="name" value="{{oldValues.name}}" maxlength="255" placeholder="Ví dụ: Lập trình Web Full-Stack từ Zero đến Hero" required aria-describedby="{{#if fieldErrors.name}}name-error{{else}}name-hint{{/if}}">
+                    {{#if fieldErrors.name}}<p class="roadmap-field__error" id="name-error">{{fieldErrors.name}}</p>{{else}}<p class="roadmap-field__hint" id="name-hint">Tên hiển thị của lộ trình trên toàn nền tảng.</p>{{/if}}
+                </div>
+
+                <div class="roadmap-field {{#if fieldErrors.description}}has-error{{/if}}">
+                    <label for="description">Mô tả chi tiết</label>
+                    <textarea id="description" name="description" rows="4" maxlength="2000" placeholder="Mô tả mục tiêu và kết quả đầu ra của lộ trình...">{{oldValues.description}}</textarea>
+                    {{#if fieldErrors.description}}<p class="roadmap-field__error" id="description-error">{{fieldErrors.description}}</p>{{else}}<p class="roadmap-field__hint" id="description-hint">Giúp người học hiểu lộ trình này dành cho ai và đạt được gì.</p>{{/if}}
+                </div>
+
+                <div class="roadmap-field--grid2">
+                    <div class="roadmap-field {{#if fieldErrors.category}}has-error{{/if}}">
+                        <label for="category">Danh mục</label>
+                        <select id="category" name="category">
+                            <option value="">Chọn danh mục</option>
+                            <option value="Khoa học máy tính" {{#if (eq oldValues.category 'Khoa học máy tính')}}selected{{/if}}>Khoa học máy tính</option>
+                            <option value="Lập trình Web" {{#if (eq oldValues.category 'Lập trình Web')}}selected{{/if}}>Lập trình Web</option>
+                            <option value="Khoa học dữ liệu" {{#if (eq oldValues.category 'Khoa học dữ liệu')}}selected{{/if}}>Khoa học dữ liệu</option>
+                            <option value="Lập trình Di động" {{#if (eq oldValues.category 'Lập trình Di động')}}selected{{/if}}>Lập trình Di động</option>
+                            <option value="DevOps" {{#if (eq oldValues.category 'DevOps')}}selected{{/if}}>DevOps</option>
+                        </select>
+                        {{#if fieldErrors.category}}<p class="roadmap-field__error" id="category-error">{{fieldErrors.category}}</p>{{/if}}
+                    </div>
+
+                    <div class="roadmap-field {{#if fieldErrors.difficulty}}has-error{{/if}}">
+                        <label for="difficulty">Độ khó</label>
+                        <select id="difficulty" name="difficulty">
+                            <option value="">Chọn độ khó</option>
+                            <option value="Mới bắt đầu" {{#if (eq oldValues.difficulty 'Mới bắt đầu')}}selected{{/if}}>Mới bắt đầu</option>
+                            <option value="Trung cấp" {{#if (eq oldValues.difficulty 'Trung cấp')}}selected{{/if}}>Trung cấp</option>
+                            <option value="Nâng cao" {{#if (eq oldValues.difficulty 'Nâng cao')}}selected{{/if}}>Nâng cao</option>
+                        </select>
+                        {{#if fieldErrors.difficulty}}<p class="roadmap-field__error" id="difficulty-error">{{fieldErrors.difficulty}}</p>{{/if}}
+                    </div>
+                </div>
+            </section>
+
+                        <section class="roadmap-section" aria-labelledby="section-cover">
+                <h2 id="section-cover">Ảnh bìa</h2>
+                <div class="roadmap-field {{#if fieldErrors.coverImage}}has-error{{/if}}">
+                    <label for="coverImage">Đường dẫn ảnh bìa (URL)</label>
+                    <input type="url" id="coverImage" name="coverImage" value="{{oldValues.coverImage}}" maxlength="500" placeholder="https://..." aria-describedby="cover-help">
+                    <p class="roadmap-field__hint" id="cover-help">Dán URL hình ảnh (http hoặc https) để làm ảnh bìa lộ trình.</p>
+                    {{#if fieldErrors.coverImage}}<p class="roadmap-field__error" id="cover-image-error">{{fieldErrors.coverImage}}</p>{{/if}}
+                </div>
+                <div class="roadmap-cover-preview" id="coverPreview" aria-live="polite">
+                    <div class="roadmap-cover-preview__empty">Ảnh bìa sẽ hiển thị tại đây.</div>
+                </div>
+            </section>
         </div>
 
-        <form action="/roadmaps" method="POST" class="roadmap-builder-grid">
-            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+        <div class="roadmap-form__side">
+            <section class="roadmap-section" aria-labelledby="section-visibility">
+                <h2 id="section-visibility">Quyền hiển thị</h2>
+                <fieldset class="roadmap-visibility">
+                    <legend>Chọn chế độ hiển thị của lộ trình</legend>
 
-            <div class="rb-card">
-                <h3>Thông Tin Lộ Trình</h3>
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="public" {{#if oldValues.visibility}}{{#if (eq oldValues.visibility 'public')}}checked{{/if}}{{else}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Công khai</strong>
+                            <span>Hiển thị với tất cả học viên trong danh mục lộ trình.</span>
+                        </span>
+                    </label>
 
-                <div class="mb-3">
-                    <label class="rb-label" for="name">Tên lộ trình <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control rb-control" id="name" name="name" placeholder="Ví dụ: Lập trình Web Full-Stack từ Zero đến Hero" required>
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="private" {{#if (eq oldValues.visibility 'private')}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Riêng tư</strong>
+                            <span>Chỉ chủ sở hữu và quản trị viên được xem.</span>
+                        </span>
+                    </label>
+
+                    <label class="roadmap-radio">
+                        <input type="radio" name="visibility" value="draft" {{#if (eq oldValues.visibility 'draft')}}checked{{/if}}>
+                        <span class="roadmap-radio__card">
+                            <strong>Bản nháp</strong>
+                            <span>Lưu nháp, chưa hiển thị ra ngoài cho đến khi bạn xuất bản.</span>
+                        </span>
+                    </label>
+                </fieldset>
+            </section>
+
+            <section class="roadmap-section" aria-labelledby="section-actions">
+                <h2 id="section-actions">Hành động</h2>
+                <div class="roadmap-actions">
+                    <button type="submit" class="roadmap-btn roadmap-btn--primary">Tạo lộ trình</button>
+                    <a href="/me/roadmaps" class="roadmap-btn roadmap-btn--ghost">Hủy</a>
                 </div>
-
-                <div class="mb-3">
-                    <label class="rb-label" for="description">Mô tả chi tiết</label>
-                    <textarea class="form-control rb-control" id="description" name="description" rows="4" placeholder="Mô tả mục tiêu và kết quả đầu ra của lộ trình..."></textarea>
-                </div>
-
-                <div class="rb-grid-2">
-                    <div>
-                        <label class="rb-label" for="category">Danh mục</label>
-                        <select class="form-select rb-control" id="category" name="category">
-                            <option value="">Chọn danh mục</option>
-                            <option value="Khoa học máy tính">Khoa học máy tính</option>
-                            <option value="Lập trình Web">Lập trình Web</option>
-                            <option value="Khoa học dữ liệu">Khoa học dữ liệu</option>
-                            <option value="Lập trình Di động">Lập trình Di động</option>
-                            <option value="DevOps">DevOps</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="rb-label" for="difficulty">Độ khó</label>
-                        <select class="form-select rb-control" id="difficulty" name="difficulty">
-                            <option value="">Chọn độ khó</option>
-                            <option value="Mới bắt đầu">Mới bắt đầu</option>
-                            <option value="Trung cấp">Trung cấp</option>
-                            <option value="Nâng cao">Nâng cao</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-                        <div class="d-grid gap-3">
-                <div class="rb-card">
-                    <h3>Cài Đặt Xuất Bản</h3>
-                    <div class="rb-radio-group mb-2">
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="public" checked>
-                            <span><strong>Công khai (Public)</strong><span>Hiển thị với tất cả học viên.</span></span>
-                        </label>
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="private">
-                            <span><strong>Riêng tư (Private)</strong><span>Chỉ ai có liên kết mới xem được.</span></span>
-                        </label>
-                        <label class="rb-radio">
-                            <input type="radio" name="visibility" value="draft">
-                            <span><strong>Bản nháp (Draft)</strong><span>Lưu nháp, chưa hiển thị ra ngoài.</span></span>
-                        </label>
-                    </div>
-                    <div class="rb-actions">
-                        <button type="submit" class="rb-btn-primary">Tạo Lộ Trình</button>
-                    </div>
-                </div>
-
-                <div class="rb-card">
-                    <h3>Ảnh Bìa Lộ Trình</h3>
-                    <label class="rb-label" for="coverImage">Đường dẫn ảnh (URL)</label>
-                    <input type="url" class="form-control rb-control mb-2" id="coverImage" name="coverImage" placeholder="https://...">
-                    <div class="rb-cover-preview" id="coverPreview">
-                        <div class="rb-cover-empty">Xem trước ảnh bìa sẽ hiển thị ở đây.</div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
+            </section>
+        </div>
+    </form>
 </div>
 
 <script>
-    (function() {
+    (function () {
         const coverInput = document.getElementById('coverImage');
         const preview = document.getElementById('coverPreview');
+        if (!coverInput || !preview) return;
 
         function renderCover() {
             const value = (coverInput.value || '').trim();
+            preview.replaceChildren();
             if (!value) {
-                preview.innerHTML = '<div class="rb-cover-empty">Preview ảnh bìa sẽ hiển thị ở đây.</div>';
+                const empty = document.createElement('div');
+                empty.className = 'roadmap-cover-preview__empty';
+                empty.textContent = 'Ảnh bìa sẽ hiển thị tại đây.';
+                preview.appendChild(empty);
                 return;
             }
-            preview.innerHTML = '<img src="' + value + '" alt="Cover preview" onerror="this.parentElement.innerHTML=\'<div class=\'rb-cover-empty\'>Không thể tải ảnh, hãy kiểm tra lại URL.</div>\'">';
+            if (!/^https?:\/\//i.test(value)) {
+                const error = document.createElement('div');
+                error.className = 'roadmap-cover-preview__error';
+                error.textContent = 'Đường dẫn không hợp lệ — chỉ chấp nhận URL http:// hoặc https://.';
+                preview.appendChild(error);
+                return;
+            }
+            const img = document.createElement('img');
+            img.alt = 'Ảnh bìa lộ trình';
+            img.loading = 'lazy';
+            img.src = value;
+            img.addEventListener('error', function () {
+                preview.replaceChildren();
+                const error = document.createElement('div');
+                error.className = 'roadmap-cover-preview__error';
+                error.textContent = 'Không thể tải ảnh từ đường dẫn này, hãy kiểm tra lại URL.';
+                preview.appendChild(error);
+            });
+            preview.appendChild(img);
         }
 
         coverInput.addEventListener('input', renderCover);
+        renderCover();
+
+        // Sau khi submit lỗi: focus vào thông báo lỗi đầu tiên.
+        const alertBox = document.getElementById('form-error');
+        if (alertBox) {
+            alertBox.focus();
+        }
     })();
 </script>

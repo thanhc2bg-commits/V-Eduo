@@ -1,25 +1,76 @@
-<div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center">
-        <h2>{{roadmap.name}}</h2>
-        {{#if canManage}}
-        <a href="/roadmaps/{{roadmap._id}}/edit" class="btn btn-outline-secondary btn-sm">Quản lý</a>
-        {{/if}}
-    </div>
-    <p class="text-muted">{{roadmap.description}}</p>
+<div class="roadmap-page">
+    <a href="/roadmaps" class="cl-back">
+        <span class="cl-back__arrow" aria-hidden="true">←</span> Tất cả lộ trình
+    </a>
 
-    <h5 class="mt-4">Các khóa học trong lộ trình</h5>
-    <div class="row">
-        {{#each courses}}
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="card-title">{{this.name}}</h6>
-                    <a href="/courses/{{this.slug}}" class="btn btn-outline-primary btn-sm">Vào học</a>
+    <section class="roadmap-hero" aria-labelledby="roadmap-hero-title">
+        <div class="roadmap-hero__inner">
+            <div class="roadmap-hero__media">
+                {{#if roadmap.coverImage}}
+                <img src="{{roadmap.coverImage}}" alt="Ảnh bìa của lộ trình {{roadmap.name}}">
+                {{else}}
+                <span class="roadmap-hero__placeholder" aria-hidden="true">V</span>
+                {{/if}}
+            </div>
+            <div class="roadmap-hero__copy">
+                <div class="roadmap-hero__meta">
+                    {{#if roadmap.category}}
+                    <span class="me-badge me-badge--neutral">{{roadmap.category}}</span>
+                    {{/if}}
+                    {{#if roadmap.difficulty}}
+                    <span>{{roadmap.difficulty}}</span>
+                    {{/if}}
+                </div>
+                <h1 class="roadmap-hero__title" id="roadmap-hero-title">{{roadmap.name}}</h1>
+                <p class="roadmap-hero__desc">{{roadmap.description}}</p>
+                <div class="roadmap-hero__actions">
+                    <span class="roadmap-status roadmap-status--{{status.key}}">{{status.text}}</span>
+                    {{#if canManage}}
+                    <a href="/roadmaps/{{roadmap._id}}/edit" class="roadmap-btn roadmap-btn--ghost">Quản lý lộ trình</a>
+                    {{/if}}
                 </div>
             </div>
         </div>
+    </section>
+
+    <section class="roadmap-journey" aria-labelledby="journey-title">
+        <header class="roadmap-journey__head">
+            <h2 class="roadmap-journey__label" id="journey-title">Hành trình học tập</h2>
+            <p class="roadmap-journey__count" aria-live="polite">{{courses.length}} khóa học</p>
+        </header>
+
+        {{#if courses.length}}
+        <ol class="roadmap-journey__list">
+            {{#each courses}}
+            <li class="roadmap-step">
+                <span class="roadmap-step__index" aria-hidden="true">{{sum @index 1}}</span>
+                <div class="roadmap-step__body">
+                    <h3 class="roadmap-step__name">
+                        <a href="/courses/{{this.slug}}">{{this.name}}</a>
+                    </h3>
+                    <p class="roadmap-step__meta">
+                        {{#if this.level}}Trình độ: {{this.level}}{{else}}Khóa học trong lộ trình{{/if}}
+                    </p>
+                </div>
+                <a class="roadmap-step__action" href="/courses/{{this.slug}}">Vào học</a>
+            </li>
+            {{/each}}
+        </ol>
         {{else}}
-        <p class="text-muted">Lộ trình này chưa có khóa học nào.</p>
-        {{/each}}
-    </div>
+        <div class="roadmap-journey__empty">
+            <span class="me-empty__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+            </span>
+            <h3>Lộ trình chưa có khóa học nào</h3>
+            <p>
+                {{#if canManage}}Hãy thêm khóa học vào lộ trình để người học có thể bắt đầu.{{else}}Lộ trình đang được cập nhật, vui lòng quay lại sau.{{/if}}
+            </p>
+            {{#if canManage}}
+            <a href="/roadmaps/{{roadmap._id}}/edit" class="roadmap-btn roadmap-btn--primary">Thêm khóa học</a>
+            {{/if}}
+        </div>
+        {{/if}}
+    </section>
 </div>

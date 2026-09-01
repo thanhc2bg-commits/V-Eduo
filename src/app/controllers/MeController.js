@@ -4,6 +4,32 @@ const Enrollment = require('../models/Enrollment');
 const { multipleMongooseToObject } = require('../../utils/mongoose');
 const { getTotalVideosForCourse } = require('../../utils/progress');
 
+// Trạng thái hiển thị dựa trên visibility; fallback isPublic chỉ dành cho
+// tài liệu cũ chưa có trường visibility (draft KHÔNG bị hiển thị thành "Riêng tư").
+function getStatusMeta(roadmap) {
+    const visibility = roadmap.visibility
+        ? roadmap.visibility
+        : roadmap.isPublic
+          ? 'public'
+          : 'private';
+    switch (visibility) {
+        case 'public':
+            return {
+                key: 'public',
+                text: 'Công khai',
+                cls: 'me-badge--success',
+            };
+        case 'draft':
+            return { key: 'draft', text: 'Bản nháp', cls: 'me-badge--warning' };
+        default:
+            return {
+                key: 'private',
+                text: 'Riêng tư',
+                cls: 'me-badge--neutral',
+            };
+    }
+}
+
 class MeController {
     myCourses(req, res, next) {
         Course.find({ createdBy: req.user.id })
@@ -85,9 +111,15 @@ class MeController {
     myRoadmaps(req, res, next) {
         Roadmap.find({ createdBy: req.user.id })
             .then((roadmaps) => {
+                const list = multipleMongooseToObject(roadmaps).map(
+                    (roadmap) => ({
+                        ...roadmap,
+                        status: getStatusMeta(roadmap),
+                    }),
+                );
                 res.render('me/my-roadmap', {
                     title: 'Lộ trình tôi tạo',
-                    roadmaps: multipleMongooseToObject(roadmaps),
+                    roadmaps: list,
                 });
             })
             .catch(next);

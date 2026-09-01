@@ -1,21 +1,75 @@
-<div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Lộ trình học tập</h2>
-        <a href="/roadmaps/create" class="btn btn-primary">+ Tạo lộ trình</a>
-    </div>
-    <div class="row">
-        {{#each roadmaps}}
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{this.name}}</h5>
-                    <p class="card-text text-muted">{{this.description}}</p>
-                    <a href="/roadmaps/{{this.slug}}" class="btn btn-outline-primary btn-sm">Xem</a>
-                </div>
-            </div>
+<div class="roadmap-page">
+    <header class="roadmap-page__head">
+        <div class="roadmap-page__copy">
+            <span class="roadmap-page__eyebrow">Học theo lộ trình</span>
+            <h1 class="roadmap-page__title">Lộ trình học tập</h1>
+            <p class="roadmap-page__desc">Khám phá các lộ trình học được tuyển chọn — học theo thứ tự bài bản từ cơ bản đến nâng cao.</p>
         </div>
-        {{else}}
-        <p class="text-muted">Chưa có lộ trình nào.</p>
-        {{/each}}
-    </div>
+        <div class="roadmap-page__actions">
+            {{#if user}}
+            <a href="/me/roadmaps" class="roadmap-btn roadmap-btn--ghost">Lộ trình của tôi</a>
+            <a href="/roadmaps/create" class="roadmap-btn roadmap-btn--primary">Tạo lộ trình</a>
+            {{else}}
+            <a href="/auth/login?returnTo=/roadmaps/create" class="roadmap-btn roadmap-btn--primary">Đăng nhập để tạo lộ trình</a>
+            {{/if}}
+        </div>
+    </header>
+
+    {{#if roadmaps.length}}
+    <section class="roadmap-catalogue" aria-labelledby="roadmap-list-title">
+        <header class="roadmap-journey__head">
+            <h2 class="roadmap-journey__label" id="roadmap-list-title">Lộ trình nổi bật</h2>
+            <p class="roadmap-journey__count" aria-live="polite">{{roadmaps.length}} lộ trình</p>
+        </header>
+        <div class="roadmap-catalogue__grid">
+            {{#each roadmaps}}
+            <article class="roadmap-card">
+                <a class="roadmap-card__media" href="/roadmaps/{{this.slug}}" tabindex="-1" aria-hidden="true">
+                    {{#if this.coverImage}}
+                    <img src="{{this.coverImage}}" alt="" loading="lazy" width="640" height="360">
+                    {{else}}
+                    <span class="roadmap-card__placeholder" aria-hidden="true">V</span>
+                    {{/if}}
+                </a>
+                <div class="roadmap-card__body">
+                    <div class="roadmap-card__meta">
+                        {{#if this.category}}
+                        <span class="me-badge me-badge--neutral">{{this.category}}</span>
+                        {{/if}}
+                        {{#if this.difficulty}}
+                        <span>{{this.difficulty}}</span>
+                        {{/if}}
+                        {{#if this.courseCount}}
+                        <span>{{this.courseCount}} khóa học</span>
+                        {{/if}}
+                    </div>
+                    <h3 class="roadmap-card__title">
+                        <a href="/roadmaps/{{this.slug}}">{{this.name}}</a>
+                    </h3>
+                    <p class="roadmap-card__desc">{{this.description}}</p>
+                    <a class="roadmap-card__link" href="/roadmaps/{{this.slug}}">
+                        Xem lộ trình
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+            </article>
+            {{/each}}
+        </div>
+    </section>
+    {{else}}
+    <section class="roadmap-catalogue" aria-labelledby="roadmap-list-empty">
+        <div class="roadmap-catalogue__empty">
+            <span class="me-empty__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                </svg>
+            </span>
+            <h2 id="roadmap-list-empty">Chưa có lộ trình công khai nào</h2>
+            <p>Hãy là người đầu tiên tạo một lộ trình học tập để chia sẻ với cộng đồng.</p>
+            <a href="/roadmaps/create" class="roadmap-btn roadmap-btn--primary">Tạo lộ trình</a>
+        </div>
+    </section>
+    {{/if}}
 </div>
