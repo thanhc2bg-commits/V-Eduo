@@ -2,10 +2,21 @@ const cors = require('cors');
 
 // CORS whitelist — chỉ cho phép origin trong danh sách (từ CORS_ORIGINS env, phân tách bằng dấu phẩy).
 // Nếu CORS_ORIGINS trống hoặc '*', cho phép tất cả (dùng cho dev/local).
+function normalizeOrigin(value) {
+    if (value === '*') return value;
+
+    try {
+        return new URL(value).origin;
+    } catch (error) {
+        return value;
+    }
+}
+
 const origins = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(normalizeOrigin);
 
 // Dùng dạng function-options để có req — cho phép same-origin LUÔN LUÔN
 // (dự án server-rendered, form submit / fetch đều same-origin),
@@ -21,17 +32,38 @@ const corsOptionsFunction = (req, callback) => {
 
     // Same-origin (origin.host === host server) → luôn cho phép
     let originHost = null;
+    let normalizedOrigin = origin;
     try {
-        originHost = new URL(origin).host;
+        const originUrl = new URL(origin);
+        originHost = originUrl.host;
+        normalizedOrigin = originUrl.origin;
     } catch (e) {
         originHost = null;
     }
-    if (originHost && req.headers.host && originHost === req.headers.host) {
+
+    // Render và các reverse proxy có thể thay Host nội bộ nhưng giữ host công
+    // khai trong X-Forwarded-Host. Ưu tiên header này khi nhận diện same-origin.
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const requestHost =
+        (typeof forwardedHost === 'string' && forwardedHost.split(',')[0].trim()) ||
+        req.headers.host;
+
+    if (originHost && requestHost && originHost === requestHost) {
         return callback(null, {
             origin: true,
             credentials: true,
             maxAge: 86400,
         });
+    }
+
+    // CORS chỉ quản lý request JavaScript giữa các origin, không được chặn
+    // người dùng điều hướng trực tiếp tới trang HTML từ một website khác.
+    const acceptsHtml = (req.headers.accept || '').includes('text/html');
+    const isPageNavigation =
+        req.method === 'GET' &&
+        (req.headers['sec-fetch-mode'] === 'navigate' || acceptsHtml);
+    if (isPageNavigation) {
+        return callback(null, { origin: false });
     }
 
     // Chỉ dev/local mới được phép dùng wildcard. Production mặc định từ chối
@@ -48,7 +80,7 @@ const corsOptionsFunction = (req, callback) => {
     }
 
     // Origin khác host — chỉ cho phép nếu nằm trong whitelist
-    if (origins.includes(origin)) {
+    if (origins.includes(normalizedOrigin)) {
         return callback(null, {
             origin: true,
             credentials: true,
