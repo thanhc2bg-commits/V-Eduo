@@ -18,6 +18,10 @@ const origins = (process.env.CORS_ORIGINS || '')
     .filter(Boolean)
     .map(normalizeOrigin);
 
+// Render cung cấp hostname công khai này ở runtime. Đây là nguồn tin cậy hơn
+// X-Forwarded-Host do request gửi lên và giúp nhận diện same-origin qua proxy.
+const renderExternalHost = (process.env.RENDER_EXTERNAL_HOSTNAME || '').trim();
+
 // Dùng dạng function-options để có req — cho phép same-origin LUÔN LUÔN
 // (dự án server-rendered, form submit / fetch đều same-origin),
 // chỉ kiểm tra whitelist khi origin là cross-origin khác host.
@@ -41,14 +45,9 @@ const corsOptionsFunction = (req, callback) => {
         originHost = null;
     }
 
-    // Render và các reverse proxy có thể thay Host nội bộ nhưng giữ host công
-    // khai trong X-Forwarded-Host. Ưu tiên header này khi nhận diện same-origin.
-    const forwardedHost = req.headers['x-forwarded-host'];
-    const requestHost =
-        (typeof forwardedHost === 'string' && forwardedHost.split(',')[0].trim()) ||
-        req.headers.host;
+    const trustedHosts = [req.headers.host, renderExternalHost].filter(Boolean);
 
-    if (originHost && requestHost && originHost === requestHost) {
+    if (originHost && trustedHosts.includes(originHost)) {
         return callback(null, {
             origin: true,
             credentials: true,
@@ -57,11 +56,11 @@ const corsOptionsFunction = (req, callback) => {
     }
 
     // CORS chỉ quản lý request JavaScript giữa các origin, không được chặn
-    // người dùng điều hướng trực tiếp tới trang HTML từ một website khác.
+    // điều hướng HTML. Form POST vẫn được lớp CSRF phía sau xác minh token.
     const acceptsHtml = (req.headers.accept || '').includes('text/html');
     const isPageNavigation =
-        req.method === 'GET' &&
-        (req.headers['sec-fetch-mode'] === 'navigate' || acceptsHtml);
+        req.headers['sec-fetch-mode'] === 'navigate' ||
+        (['GET', 'POST'].includes(req.method) && acceptsHtml);
     if (isPageNavigation) {
         return callback(null, { origin: false });
     }
